@@ -41,7 +41,9 @@ const MyLeads: React.FC = () => {
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<string>('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedAssignmentLead, setSelectedAssignmentLead] = useState<any>(null);
+  
   // Initialize state from URL parameters on component mount
   useEffect(() => {
     const page = searchParams.get('page');
@@ -613,10 +615,31 @@ const MyLeads: React.FC = () => {
                         checked={selectedLeads.includes(lead._id)}
                         onChange={() => handleSelectLead(lead._id)}
                       />
-                    </td>
+                   </td>
                     <td className="whitespace-nowrap py-4 px-6">
                       <div>
-                        <div className="font-medium text-gray-900 text-sm">{lead.name}</div>
+                      <div className="flex items-center gap-2">
+  <span className="font-medium text-gray-900 text-sm">
+    {lead.name}
+  </span>
+
+  {(lead.assignmentCount ?? 0) > 1 && (
+    <button
+      onClick={(e) => {
+        e.stopPropagation(); // prevent row click
+        setSelectedAssignmentLead(lead);
+        setShowAssignmentModal(true);
+      }}
+      className="px-2 py-0.5 text-xs font-semibold rounded-full
+                 bg-orange-100 text-orange-800
+                 hover:bg-orange-200 transition"
+      title="This lead was reassigned. Click to view history."
+    >
+      Reassigned ({lead.assignmentCount})
+    </button>
+  )}
+</div>
+
                         <div className="text-sm text-gray-500">{lead.position}</div>
                       </div>
                     </td>
@@ -811,6 +834,65 @@ const MyLeads: React.FC = () => {
           )}
         </div>
       )}
+      {/* ================= Assignment History Modal ================= */}
+{showAssignmentModal && selectedAssignmentLead && (
+  <div
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    onClick={() => setShowAssignmentModal(false)}
+  >
+    <div
+      className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">
+          Assignment History – {selectedAssignmentLead.name}
+        </h3>
+        <button
+          onClick={() => setShowAssignmentModal(false)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="space-y-4 max-h-[400px] overflow-y-auto">
+        {selectedAssignmentLead.assignmentHistory?.length > 0 ? (
+          selectedAssignmentLead.assignmentHistory.map((item: any) => (
+            <div
+              key={item._id}
+              className="border rounded-lg p-3 text-sm bg-gray-50"
+            >
+              <div className="flex justify-between">
+                <div>
+                  <div className="font-medium text-gray-900">
+                    Assigned to: {item.assignedTo?.name || 'Unknown'}
+                  </div>
+                  <div className="text-gray-600 text-xs">
+                    {item.assignedTo?.email}
+                  </div>
+                </div>
+
+                <span className="text-xs text-gray-500">
+                  {new Date(item.assignedAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="mt-2 text-xs text-gray-700">
+                Source: <span className="font-medium">{item.source}</span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-gray-500 text-center">
+            No assignment history found
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

@@ -800,11 +800,45 @@ const AllLeads: React.FC = () => {
                     />
                   </td>
                   <td className="whitespace-nowrap">
-                    <div>
-                      <div className="font-medium text-gray-900">{lead.name}</div>
-                      <div className="text-sm text-gray-500">{lead.position}</div>
-                    </div>
-                  </td>
+  <div className="flex flex-col gap-0.5">
+    {/* Name + reassigned badge in one line */}
+    <div className="flex items-center gap-2 max-w-[260px]">
+      <span className="font-medium text-gray-900 truncate">
+        {lead.name}
+      </span>
+
+      {(lead.assignmentCount ?? 0) > 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // prevent row click
+            // you can reuse the same modal logic if needed
+            toast(`This lead was reassigned ${lead.assignmentCount} times`);
+          }}
+          className="
+            inline-flex items-center
+            px-2 py-0.5
+            text-[11px] font-semibold
+            rounded-full
+            bg-orange-100 text-orange-700
+            hover:bg-orange-200
+            whitespace-nowrap
+          "
+          title="This lead was reassigned"
+        >
+          Reassigned ({lead.assignmentCount})
+        </button>
+      )}
+    </div>
+
+    {/* Position */}
+    {lead.position && (
+      <div className="text-sm text-gray-500 truncate max-w-[260px]">
+        {lead.position}
+      </div>
+    )}
+  </div>
+</td>
+
                   <td className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <div className="space-y-1">
                       <div className="flex items-center text-sm">

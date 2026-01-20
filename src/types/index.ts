@@ -1,4 +1,13 @@
 // Authentication Types
+
+export interface AssignmentHistoryItem {
+  _id: string;
+  assignedTo?: User;
+  assignedBy?: User | null;
+  assignedAt: string;
+  source: 'Manual' | 'Bulk' | 'Import' | 'Reimport' | 'System';
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -30,6 +39,7 @@ export interface AuthState {
 }
 
 // Lead Types
+// Lead Types (BACKWARD COMPATIBLE)
 export interface Lead {
   _id: string;
   name: string;
@@ -40,15 +50,25 @@ export interface Lead {
   source: LeadSource;
   status: LeadStatus;
   priority: LeadPriority;
+
   assignedTo?: string;
   assignedBy?: string;
   assignedToUser?: User;
   assignedByUser?: User;
+
   notes: LeadNote[];
   leadScore?: number;
+
+  // ✅ NEW — OPTIONAL (won’t break old code)
+  assignmentHistory?: AssignmentHistoryItem[];
+  assignmentCount?: number;
+  wasAssignedInPast?: boolean;
+
   createdAt: string;
   updatedAt: string;
 }
+
+
 
 export interface LeadNote {
   id: string;

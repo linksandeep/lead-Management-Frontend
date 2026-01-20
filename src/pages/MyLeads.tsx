@@ -17,6 +17,19 @@ import {
   CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+const ALLOWED_STATUSES: LeadStatus[] = [
+  'New',
+  'Contacted',
+  'Follow-up',
+  'Interested',
+  'Qualified',
+  'Proposal Sent',
+  'Negotiating',
+  'Sales Done',
+  'DNP',
+  'Not Interested',
+  'Wrong Number'
+];
 
 const MyLeads: React.FC = () => {
   const navigate = useNavigate();
@@ -670,51 +683,37 @@ const MyLeads: React.FC = () => {
   className="whitespace-nowrap py-4 px-6"
   onClick={(e) => e.stopPropagation()}
 >
-  <div className="flex items-center gap-2">
+  <select
+    value={lead.status}
+    onChange={(e) =>
+      updateLeadStatus(lead._id, e.target.value as LeadStatus)
+    }
+    className={`
+      px-3 py-2
+      rounded-md
+      text-xs font-semibold
+      min-w-[150px]
+      cursor-pointer
+      border border-gray-300
+      focus:outline-none
+      focus:ring-2
+      focus:ring-blue-500
+      ${getStatusColor(lead.status)}
+    `}
+  >
+    {/* ✅ Always show backend status */}
+    {!ALLOWED_STATUSES.includes(lead.status) && (
+      <option value={lead.status}>{lead.status}</option>
+    )}
 
-    {/* Status dropdown (editable) */}
-<select
-  value={lead.status}
-  onChange={(e) =>
-    updateLeadStatus(lead._id, e.target.value as LeadStatus)
-  }
-  className={`
-    px-3 py-2
-    rounded-md
-    text-xs font-semibold
-    min-w-[140px]
-    cursor-pointer
-    border border-gray-300
-    bg-white
-    text-gray-900
-    focus:outline-none
-    focus:ring-2
-    focus:ring-blue-500
-    ${getStatusColor(lead.status)}
-  `}
->
-  {/* ✅ SAFETY: show backend status even if missing in options */}
-  {!statusOptions.includes(lead.status) && (
-    <option value={lead.status}>{lead.status}</option>
-  )}
-
-  {statusOptions.map(status => (
-    <option key={status} value={status}>
-      {status}
-    </option>
-  ))}
-</select>
-
-
-    {/* Status badge (always visible) */}
-    {/* <span
-      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(lead.status)}`}
-    >
-      {lead.status}
-    </span> */}
-
-  </div>
+    {ALLOWED_STATUSES.map(status => (
+      <option key={status} value={status}>
+        {status}
+      </option>
+    ))}
+  </select>
 </td>
+
 
                     <td className="whitespace-nowrap py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

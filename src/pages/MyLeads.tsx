@@ -666,27 +666,56 @@ const MyLeads: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap py-4 px-6" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={lead.status}
-                        onChange={(e) => updateLeadStatus(lead._id, e.target.value as LeadStatus)}
-                        className={`px-3 py-2 rounded-full text-xs font-medium border-0 min-w-[140px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${getStatusColor(lead.status)}`}
-                        style={{
-                          appearance: 'none',
-                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 8px center',
-                          backgroundSize: '12px',
-                          paddingRight: '30px'
-                        }}
-                      >
-                        {statusOptions.map(status => (
-                          <option key={status} value={status} className="text-gray-900 bg-white">
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                    <td
+  className="whitespace-nowrap py-4 px-6"
+  onClick={(e) => e.stopPropagation()}
+>
+  <div className="flex items-center gap-2">
+
+    {/* Status dropdown (editable) */}
+<select
+  value={lead.status}
+  onChange={(e) =>
+    updateLeadStatus(lead._id, e.target.value as LeadStatus)
+  }
+  className={`
+    px-3 py-2
+    rounded-md
+    text-xs font-semibold
+    min-w-[140px]
+    cursor-pointer
+    border border-gray-300
+    bg-white
+    text-gray-900
+    focus:outline-none
+    focus:ring-2
+    focus:ring-blue-500
+    ${getStatusColor(lead.status)}
+  `}
+>
+  {/* ✅ SAFETY: show backend status even if missing in options */}
+  {!statusOptions.includes(lead.status) && (
+    <option value={lead.status}>{lead.status}</option>
+  )}
+
+  {statusOptions.map(status => (
+    <option key={status} value={status}>
+      {status}
+    </option>
+  ))}
+</select>
+
+
+    {/* Status badge (always visible) */}
+    {/* <span
+      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(lead.status)}`}
+    >
+      {lead.status}
+    </span> */}
+
+  </div>
+</td>
+
                     <td className="whitespace-nowrap py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         lead.priority === 'High' ? 'bg-red-100 text-red-800' :

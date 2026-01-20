@@ -146,32 +146,33 @@ const AllLeads: React.FC = () => {
   const fetchFolders = async () => {
     try {
       setLoading(true);
-      
-      // Fetch both folders and their counts efficiently
+  
       const [foldersResponse, countsResponse] = await Promise.all([
         leadApi.getDistinctFolders(),
         leadApi.getFolderCounts()
       ]);
-      
+  
       if (foldersResponse.success && foldersResponse.data) {
-        // Add default folder for uncategorized leads
-        const allFolders = [...foldersResponse.data, 'Uncategorized','Duplicate'];
+        const allFolders = [...foldersResponse.data, 'Uncategorized', 'Duplicate'];
         setAvailableFolders(allFolders);
-        
-        // Use server-side folder counts if available
+  
+        const stats: Record<string, number> = {};
+  
+        // Initialize all folders with 0
+        allFolders.forEach(folder => {
+          stats[folder] = 0;
+        });
+  
+        // ✅ Apply new counts API data
         if (countsResponse.success && countsResponse.data) {
-          setFolderStats(countsResponse.data);
-        } else {
-          // Fallback to zero counts
-          const stats: Record<string, number> = {};
-          allFolders.forEach(folder => {
-            stats[folder] = 0;
-          });
-          setFolderStats(stats);
+          stats['Duplicate'] = countsResponse.data.duplicate || 0;
+          stats['Uncategorized'] = countsResponse.data.uncategorized || 0;
         }
+  
+        setFolderStats(stats);
       }
-
-      // Fetch status counts
+  
+      // ✅ STATUS COUNTS (unchanged)
       const allLeadsResponse = await leadApi.getLeads({}, 1, 10000);
       if (allLeadsResponse.success) {
         const stats: Record<string, number> = {};
@@ -187,6 +188,7 @@ const AllLeads: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   const fetchLeads = async () => {
     try {

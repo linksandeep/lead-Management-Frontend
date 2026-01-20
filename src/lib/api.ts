@@ -398,14 +398,24 @@ export const leadApi = {
     }
   },
 
-  getFolderCounts: async (): Promise<ApiResponse<Record<string, number>>> => {
-    try {
-      const response = await api.get('/leads/folder-counts');
-      return handleResponse(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  },
+  getFolderCounts: async (): Promise<
+  ApiResponse<{ duplicate: number; uncategorized: number }>
+> => {
+  try {
+    const response = await api.get('/leads/counts/summary');
+    return response.data;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to fetch folder counts',
+      data: {
+        duplicate: 0,
+        uncategorized: 0
+      }
+    };
+  }
+},
+
 
   getLeadFields: async (): Promise<ApiResponse<LeadFieldDefinition[]>> => {
     try {

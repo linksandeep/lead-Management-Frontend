@@ -1,0 +1,593 @@
+import axios, { type AxiosResponse } from 'axios';
+import type { 
+  ApiResponse, 
+  PaginatedResponse,
+  LoginCredentials, 
+  User, 
+  Lead, 
+  CreateLeadForm, 
+  UpdateLeadForm, 
+  AssignLeadForm,
+  AddNoteForm,
+  DashboardStats,
+  LeadFilters,
+  ExcelUploadResponse,
+  CreateUserForm,
+  ExcelFileAnalysis,
+  SheetPreviewData,
+  DynamicImportRequest,
+  LeadFieldDefinition,
+  GoogleSheetImportResponse
+} from '../types';
+
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Only redirect to login if this is NOT a login request
+      // Login requests should handle their own 401 errors
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      
+      if (!isLoginRequest) {
+        // Clear auth data and redirect to login for expired tokens
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to handle API responses
+const handleResponse = <T>(response: AxiosResponse<ApiResponse<T>>): ApiResponse<T> => {
+  return response.data;
+};
+
+const handleError = (error: any): ApiResponse => {
+  if (error.response?.data) {
+    const errorData = error.response.data;
+    
+    // Handle duplicate errors with better messages
+    if (errorData.message === 'Duplicate lead detected' || 
+        errorData.errors?.some((err: string) => err.includes('already exists'))) {
+      return {
+        ...errorData,
+        message: 'Duplicate lead detected',
+        isDuplicate: true
+      };
+    }
+    
+    return errorData;
+  }
+  return {
+    success: false,
+    message: error.message || 'An unexpected error occurred',
+  };
+};
+
+// Authentication API
+export const authApi = {
+  login: async (credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> => {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  me: async (): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.get('/auth/me');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  logout: async (): Promise<ApiResponse> => {
+    try {
+      const response = await api.post('/auth/logout');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  updateProfile: async (profileData: { name: string; email?: string }): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.put('/auth/profile', profileData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  changePassword: async (passwordData: { currentPassword: string; newPassword: string }): Promise<ApiResponse> => {
+    try {
+      const response = await api.put('/auth/change-password', passwordData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  dangerReset: async (): Promise<ApiResponse> => {
+    try {
+      const response = await api.post('/auth/danger-reset');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+};
+
+// User Management API
+export const userApi = {
+  getUsers: async (): Promise<ApiResponse<User[]>> => {
+    try {
+      const response = await api.get('/users');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  createUser: async (userData: CreateUserForm): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.post('/users', userData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  updateUser: async (userId: string, userData: Partial<User>): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.put(`/users/${userId}`, userData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  deleteUser: async (userId: string): Promise<ApiResponse> => {
+    try {
+      const response = await api.delete(`/users/${userId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getUserById: async (userId: string): Promise<ApiResponse<User>> => {
+    try {
+      const response = await api.get(`/users/${userId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getUserStats: async (): Promise<ApiResponse<{ totalUsers: number; activeUsers: number; adminUsers: number; userUsers: number }>> => {
+    try {
+      const response = await api.get('/users/stats');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+};
+
+// Lead Management API
+export const leadApi = {
+  getLeads: async (filters?: LeadFilters, page?: number, limit?: number): Promise<PaginatedResponse<Lead>> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach(v => params.append(key, v));
+            } else if (typeof value === 'object') {
+              params.append(key, JSON.stringify(value));
+            } else {
+              params.append(key, value.toString());
+            }
+          }
+        });
+      }
+      if (page) params.append('page', page.toString());
+      if (limit) params.append('limit', limit.toString());
+
+      const response = await api.get(`/leads?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch leads',
+        data: [],
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
+    }
+  },
+  getDuplicateLeads: async (
+    filters?: LeadFilters,
+    page?: number,
+    limit?: number
+  ): Promise<PaginatedResponse<Lead>> => {
+    try {
+      const params = new URLSearchParams();
+  
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach(v => params.append(key, v));
+            } else if (typeof value === 'object') {
+              params.append(key, JSON.stringify(value));
+            } else {
+              params.append(key, value.toString());
+            }
+          }
+        });
+      }
+  
+      // ✅ FORCE Duplicate folder
+      params.delete('folder');
+      params.append('folder', 'Duplicate');
+  
+      if (page) params.append('page', page.toString());
+      if (limit) params.append('limit', limit.toString());
+  
+      const response = await api.get(`/leads?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch duplicate leads',
+        data: [],
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
+    }
+  },
+  
+
+  getLead: async (leadId: string): Promise<ApiResponse<Lead>> => {
+    try {
+      const response = await api.get(`/leads/${leadId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  createLead: async (leadData: CreateLeadForm): Promise<ApiResponse<Lead>> => {
+    try {
+      const response = await api.post('/leads', leadData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  updateLead: async (leadId: string, leadData: UpdateLeadForm): Promise<ApiResponse<Lead>> => {
+    try {
+      const response = await api.put(`/leads/${leadId}`, leadData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  deleteLead: async (leadId: string): Promise<ApiResponse> => {
+    try {
+      const response = await api.delete(`/leads/${leadId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  assignLeads: async (assignmentData: AssignLeadForm): Promise<ApiResponse<Lead[]>> => {
+    try {
+      const response = await api.post('/leads/assign', assignmentData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  bulkUpdateStatus: async (leadIds: string[], status: string): Promise<ApiResponse<Lead[]>> => {
+    try {
+      const response = await api.put('/leads/bulk-status', { leadIds, status });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  unassignLeads: async (data: { leadIds: string[] }): Promise<ApiResponse<Lead[]>> => {
+    try {
+      const response = await api.post('/leads/unassign', data);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  addNote: async (noteData: AddNoteForm): Promise<ApiResponse<Lead>> => {
+    try {
+      const response = await api.post('/leads/notes', noteData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getMyLeads: async (
+    page?: number,
+    limit?: number,
+    status?: string,
+    folder?: string,
+    search?: string
+  ): Promise<PaginatedResponse<Lead>> => {
+    try {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page.toString());
+      if (limit) params.append('limit', limit.toString());
+      if (status) params.append('status', status);
+      if (folder) params.append('folder', folder);
+      if (search) params.append('search', search);
+
+      const response = await api.get(`/leads/my-leads?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch your leads',
+        data: [],
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
+    }
+  },
+
+  getMyLeadsStats: async (): Promise<ApiResponse<{ total: number; newLeads: number; inProgress: number; closed: number }>> => {
+    try {
+      const response = await api.get('/leads/my-leads/stats');
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch your leads stats',
+      };
+    }
+  },
+
+  getDistinctFolders: async (): Promise<ApiResponse<string[]>> => {
+    try {
+      const response = await api.get('/leads/folders');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getFolderCounts: async (): Promise<ApiResponse<Record<string, number>>> => {
+    try {
+      const response = await api.get('/leads/folder-counts');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getLeadFields: async (): Promise<ApiResponse<LeadFieldDefinition[]>> => {
+    try {
+      const response = await api.get('/leads/import/fields');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  analyzeExcelFile: async (file: File): Promise<ApiResponse<ExcelFileAnalysis>> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post('/leads/import/analyze', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getSheetPreview: async (
+    file: File,
+    sheetName: string,
+    previewRows: number = 5
+  ): Promise<ApiResponse<SheetPreviewData>> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sheetName', sheetName);
+      formData.append('previewRows', previewRows.toString());
+
+      const response = await api.post('/leads/import/preview', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  importWithMapping: async (
+    file: File,
+    importRequest: Omit<DynamicImportRequest, 'fileName'>
+  ): Promise<ExcelUploadResponse> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sheetName', importRequest.sheetName);
+      formData.append('fieldMappings', JSON.stringify(importRequest.fieldMappings));
+      formData.append('skipEmptyRows', importRequest.skipEmptyRows.toString());
+      formData.append('startFromRow', importRequest.startFromRow.toString());
+
+      const response = await api.post('/leads/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to import Excel file',
+        data: {
+          totalRows: 0,
+          successfulImports: 0,
+          failedImports: 0,
+          errors: [],
+          leads: []
+        }
+      };
+    }
+  },
+
+  /* ONLY NEW METHOD ADDED — NOTHING ELSE CHANGED */
+  importFromGoogleSheet: async (
+    sheetUrl: string
+  ): Promise<GoogleSheetImportResponse> => {
+    const response = await api.post('/leads/import/google-sheet', { sheetUrl });
+    return response.data;
+  },
+  
+  
+};
+
+
+// Dashboard API
+export const dashboardApi = {
+  getStats: async (): Promise<ApiResponse<DashboardStats>> => {
+    try {
+      const response = await api.get('/dashboard/stats');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getAdminStats: async (): Promise<ApiResponse<DashboardStats>> => {
+    try {
+      const response = await api.get('/dashboard/admin-stats');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getLeadsByStatus: async (): Promise<ApiResponse<Array<{ status: string; count: number; percentage: number }>>> => {
+    try {
+      const response = await api.get('/dashboard/leads/by-status');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getLeadsBySource: async (): Promise<ApiResponse<Array<{ source: string; count: number; percentage: number }>>> => {
+    try {
+      const response = await api.get('/dashboard/leads/by-source');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getRecentActivity: async (): Promise<ApiResponse<Array<{ type: string; description: string; timestamp: string; user: string }>>> => {
+    try {
+      const response = await api.get('/dashboard/recent-activity');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  getLeadMetrics: async (): Promise<ApiResponse<{ conversionRate: number; leadWon: number; leadsThisWeek: number; leadsThisMonth: number }>> => {
+    try {
+      const response = await api.get('/dashboard/metrics');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+};
+
+// Status API
+export const statusApi = {
+  getStatuses: async (): Promise<ApiResponse<Array<{ _id: string; name: string; isDefault: boolean; order: number }>>> => {
+    try {
+      const response = await api.get('/statuses');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  createStatus: async (name: string): Promise<ApiResponse<{ _id: string; name: string; isDefault: boolean; order: number }>> => {
+    try {
+      const response = await api.post('/statuses', { name });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  deleteStatus: async (id: string): Promise<ApiResponse> => {
+    try {
+      const response = await api.delete(`/statuses/${id}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  updateOrder: async (statuses: Array<{ id: string; order: number }>): Promise<ApiResponse> => {
+    try {
+      const response = await api.put('/statuses/order', { statuses });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+};
+
+export default api;

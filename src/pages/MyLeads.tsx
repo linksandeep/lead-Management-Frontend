@@ -551,38 +551,50 @@ const MyLeads: React.FC = () => {
             </div>
 
             <div className="flex items-end gap-4">
-              <div className="flex-1">
-                <label className="form-label">Select New Status</label>
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value)}
-                  className="form-input"
-                  disabled={updatingStatus}
-                >
-                  <option value="">Choose a status...</option>
-                  {statusOptions.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={handleBulkStatusUpdate}
-                disabled={selectedLeads.length === 0 || !bulkStatus || updatingStatus}
-                className="btn btn-success"
-              >
-                {updatingStatus ? (
-                  <>
-                    <div className="loading-spinner mr-2"></div>
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Update {selectedLeads.length > 0 ? selectedLeads.length : ''} Lead{selectedLeads.length !== 1 ? 's' : ''}
-                  </>
-                )}
-              </button>
-            </div>
+  <div className="flex-1">
+    <label className="form-label">Select New Status</label>
+
+    <select
+      value={bulkStatus}
+      onChange={(e) => setBulkStatus(e.target.value as LeadStatus)}
+      className="
+        form-input
+        text-sm
+        font-medium
+        cursor-pointer
+      "
+      disabled={updatingStatus}
+    >
+      <option value="">Choose a status...</option>
+
+      {ALLOWED_STATUSES.map(status => (
+        <option key={status} value={status}>
+          {status}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button
+    onClick={handleBulkStatusUpdate}
+    disabled={selectedLeads.length === 0 || !bulkStatus || updatingStatus}
+    className="btn btn-success"
+  >
+    {updatingStatus ? (
+      <>
+        <div className="loading-spinner mr-2"></div>
+        Updating...
+      </>
+    ) : (
+      <>
+        <CheckCircle className="w-4 h-4" />
+        Update {selectedLeads.length || ''} Lead
+        {selectedLeads.length !== 1 ? 's' : ''}
+      </>
+    )}
+  </button>
+</div>
+
           </div>
         </div>
       )}

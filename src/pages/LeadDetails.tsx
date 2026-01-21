@@ -22,6 +22,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { reminderApi } from '../lib/reminderApi';
 
 const LeadDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +36,11 @@ const LeadDetails: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
   const [newNote, setNewNote] = useState('');
-
+  const [showReminderForm, setShowReminderForm] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState('');
+  const [reminderNote, setReminderNote] = useState('');
+  const [remindAt, setRemindAt] = useState('');
+  
   // Form data for editing
   const [formData, setFormData] = useState({
     name: '',
@@ -93,7 +98,26 @@ const LeadDetails: React.FC = () => {
       setLoading(false);
     }
   };
+ 
+const createReminder = async () => {
+  if (!lead) return; // silent guard (NO alert)
 
+  await reminderApi.createReminder({
+    leadId: lead._id,
+    title: reminderTitle,
+    note: reminderNote,
+    remindAt: remindAt, // already ISO from input
+  });
+
+  setShowReminderForm(false);
+  setReminderTitle('');
+  setReminderNote('');
+  setRemindAt('');
+
+  toast.success('Reminder set');
+};
+  
+  
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -383,6 +407,7 @@ const LeadDetails: React.FC = () => {
                         <option key={source} value={source}>{source}</option>
                       ))}
                     </select>
+                    <button>click this</button>
                   </div>
                 </div>
               ) : (
@@ -436,10 +461,66 @@ const LeadDetails: React.FC = () => {
                         <p className="text-gray-900">{lead.source}</p>
                       </div>
                     </div>
+                    <button
+  className="btn btn-outline btn-sm"
+  onClick={() => setShowReminderForm(true)}
+>
+  ⏰ Set Reminder
+</button>
+
                   </div>
                 </div>
               )}
             </div>
+            {showReminderForm && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg w-full max-w-md p-6">
+      <h3 className="text-lg font-semibold mb-4">
+        Set Reminder
+      </h3>
+
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="e.g. Call client"
+          className="form-input"
+          value={reminderTitle}
+          onChange={(e) => setReminderTitle(e.target.value)}
+        />
+
+        <textarea
+          placeholder="Optional note"
+          className="form-input"
+          value={reminderNote}
+          onChange={(e) => setReminderNote(e.target.value)}
+        />
+
+        <input
+          type="datetime-local"
+          className="form-input"
+          value={remindAt}
+          onChange={(e) => setRemindAt(e.target.value)}
+        />
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowReminderForm(false)}
+        >
+          Cancel
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={createReminder}
+        >
+          Save Reminder
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
           </div>
 
           {/* Notes Section */}

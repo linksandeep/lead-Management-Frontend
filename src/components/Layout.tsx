@@ -59,26 +59,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     if (!user?._id) return;
   
-    console.log('🟢 Connecting socket for user:', user._id);
+    console.log('🟢 Preparing socket for user:', user._id);
   
-    socket.connect();
+    if (!socket.connected) {
+      socket.connect();
+    }
   
-    socket.emit('join', user._id);
+    const handleConnect = () => {
+      console.log('✅ Socket connected:', socket.id);
+      socket.emit('join', user._id);
+      console.log('📥 Joined room:', user._id);
+    };
   
-    socket.on('reminder', (data) => {
+    const handleReminder = (data: any) => {
       console.log('🔔 Reminder received:', data);
   
-      new Audio('/notification.mp3').play();
+      new Audio('/notification.mp3').play().catch(() => {});
       setReminders(prev => [data, ...prev]);
-  
       toast(`⏰ Reminder: ${data.title}`);
-    });
+    };
+  
+    socket.on('connect', handleConnect);
+    socket.on('reminder', handleReminder);
   
     return () => {
-      socket.off('reminder');
+      socket.off('connect', handleConnect);
+      socket.off('reminder', handleReminder);
       socket.disconnect();
     };
-  }, [user]);
+  }, [user?._id]);
+  
   
 
   /* ================= LOADING ================= */

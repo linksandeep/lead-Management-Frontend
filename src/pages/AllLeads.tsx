@@ -143,36 +143,36 @@ const AllLeads: React.FC = () => {
     }
   };
 
+
   const fetchFolders = async () => {
     try {
       setLoading(true);
-  
+      
+      // Fetch both folders and their counts efficiently
       const [foldersResponse, countsResponse] = await Promise.all([
         leadApi.getDistinctFolders(),
         leadApi.getFolderCounts()
       ]);
-  
+      
       if (foldersResponse.success && foldersResponse.data) {
-        const allFolders = [...foldersResponse.data, 'Uncategorized', 'Duplicate'];
+        // Add default folder for uncategorized leads
+        const allFolders = [...foldersResponse.data, 'Uncategorized'];
         setAvailableFolders(allFolders);
-  
-        const stats: Record<string, number> = {};
-  
-        // Initialize all folders with 0
-        allFolders.forEach(folder => {
-          stats[folder] = 0;
-        });
-  
-        // ✅ Apply new counts API data
+        
+        // Use server-side folder counts if available
         if (countsResponse.success && countsResponse.data) {
-          stats['Duplicate'] = countsResponse.data.duplicate || 0;
-          stats['Uncategorized'] = countsResponse.data.uncategorized || 0;
+          setFolderStats(countsResponse.data);
+        } else {
+          // Fallback to zero counts
+          const stats: Record<string, number> = {};
+          allFolders.forEach(folder => {
+            stats[folder] = 0;
+          });
+          setFolderStats(stats);
         }
-  
-        setFolderStats(stats);
       }
-  
-      // ✅ STATUS COUNTS (unchanged)
+
+      // Fetch status counts
       const allLeadsResponse = await leadApi.getLeads({}, 1, 10000);
       if (allLeadsResponse.success) {
         const stats: Record<string, number> = {};
@@ -188,24 +188,12 @@ const AllLeads: React.FC = () => {
       setLoading(false);
     }
   };
-  
-
   const fetchLeads = async () => {
     try {
       setLoading(true);
-  
-      const searchFilters = appliedSearchQuery
-        ? { ...filters, search: appliedSearchQuery }
-        : filters;
-  
-      // ✅ ONLY CHANGE: detect Duplicate folder
-      const isDuplicateView =
-        filters.folder?.length === 1 && filters.folder[0] === 'Duplicate';
-  
-      const response = isDuplicateView
-        ? await leadApi.getDuplicateLeads(searchFilters, currentPage, leadsPerPage)
-        : await leadApi.getLeads(searchFilters, currentPage, leadsPerPage);
-  
+      const searchFilters = appliedSearchQuery ? { ...filters, search: appliedSearchQuery } : filters;
+      const response = await leadApi.getLeads(searchFilters, currentPage, leadsPerPage);
+      
       if (response.success) {
         setLeads(response.data);
         if (response.pagination) {
@@ -221,8 +209,6 @@ const AllLeads: React.FC = () => {
       setLoading(false);
     }
   };
-  
-
   const handleFilterChange = (filterType: keyof LeadFilters, value: any) => {
     setFilters(prev => ({
       ...prev,
@@ -800,45 +786,11 @@ const AllLeads: React.FC = () => {
                     />
                   </td>
                   <td className="whitespace-nowrap">
-  <div className="flex flex-col gap-0.5">
-    {/* Name + reassigned badge in one line */}
-    <div className="flex items-center gap-2 max-w-[260px]">
-      <span className="font-medium text-gray-900 truncate">
-        {lead.name}
-      </span>
-
-      {(lead.assignmentCount ?? 0) > 1 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // prevent row click
-            // you can reuse the same modal logic if needed
-            toast(`This lead was reassigned ${lead.assignmentCount} times`);
-          }}
-          className="
-            inline-flex items-center
-            px-2 py-0.5
-            text-[11px] font-semibold
-            rounded-full
-            bg-orange-100 text-orange-700
-            hover:bg-orange-200
-            whitespace-nowrap
-          "
-          title="This lead was reassigned"
-        >
-          Reassigned ({lead.assignmentCount})
-        </button>
-      )}
-    </div>
-
-    {/* Position */}
-    {lead.position && (
-      <div className="text-sm text-gray-500 truncate max-w-[260px]">
-        {lead.position}
-      </div>
-    )}
-  </div>
-</td>
-
+                    <div>
+                      <div className="font-medium text-gray-900">{lead.name}</div>
+                      <div className="text-sm text-gray-500">{lead.position}</div>
+                    </div>
+                  </td>
                   <td className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <div className="space-y-1">
                       <div className="flex items-center text-sm">

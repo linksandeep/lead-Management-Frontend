@@ -17,19 +17,6 @@ import {
   CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-const ALLOWED_STATUSES: LeadStatus[] = [
-  'New',
-  'Contacted',
-  'Follow-up',
-  'Interested',
-  'Qualified',
-  'Proposal Sent',
-  'Negotiating',
-  'Sales Done',
-  'DNP',
-  'Not Interested',
-  'Wrong Number'
-];
 
 const MyLeads: React.FC = () => {
   const navigate = useNavigate();
@@ -57,6 +44,7 @@ const MyLeads: React.FC = () => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedAssignmentLead, setSelectedAssignmentLead] = useState<any>(null);
   
+
   // Initialize state from URL parameters on component mount
   useEffect(() => {
     const page = searchParams.get('page');
@@ -551,50 +539,38 @@ const MyLeads: React.FC = () => {
             </div>
 
             <div className="flex items-end gap-4">
-  <div className="flex-1">
-    <label className="form-label">Select New Status</label>
-
-    <select
-      value={bulkStatus}
-      onChange={(e) => setBulkStatus(e.target.value as LeadStatus)}
-      className="
-        form-input
-        text-sm
-        font-medium
-        cursor-pointer
-      "
-      disabled={updatingStatus}
-    >
-      <option value="">Choose a status...</option>
-
-      {ALLOWED_STATUSES.map(status => (
-        <option key={status} value={status}>
-          {status}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <button
-    onClick={handleBulkStatusUpdate}
-    disabled={selectedLeads.length === 0 || !bulkStatus || updatingStatus}
-    className="btn btn-success"
-  >
-    {updatingStatus ? (
-      <>
-        <div className="loading-spinner mr-2"></div>
-        Updating...
-      </>
-    ) : (
-      <>
-        <CheckCircle className="w-4 h-4" />
-        Update {selectedLeads.length || ''} Lead
-        {selectedLeads.length !== 1 ? 's' : ''}
-      </>
-    )}
-  </button>
-</div>
-
+              <div className="flex-1">
+                <label className="form-label">Select New Status</label>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="form-input"
+                  disabled={updatingStatus}
+                >
+                  <option value="">Choose a status...</option>
+                  {statusOptions.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleBulkStatusUpdate}
+                disabled={selectedLeads.length === 0 || !bulkStatus || updatingStatus}
+                className="btn btn-success"
+              >
+                {updatingStatus ? (
+                  <>
+                    <div className="loading-spinner mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Update {selectedLeads.length > 0 ? selectedLeads.length : ''} Lead{selectedLeads.length !== 1 ? 's' : ''}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -640,7 +616,7 @@ const MyLeads: React.FC = () => {
                         checked={selectedLeads.includes(lead._id)}
                         onChange={() => handleSelectLead(lead._id)}
                       />
-                   </td>
+                    </td>
                     <td className="whitespace-nowrap py-4 px-6">
                       <div>
                       <div className="flex items-center gap-2">
@@ -664,7 +640,7 @@ const MyLeads: React.FC = () => {
     </button>
   )}
 </div>
-
+                        
                         <div className="text-sm text-gray-500">{lead.position}</div>
                       </div>
                     </td>
@@ -691,42 +667,27 @@ const MyLeads: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td
-  className="whitespace-nowrap py-4 px-6"
-  onClick={(e) => e.stopPropagation()}
->
-  <select
-    value={lead.status}
-    onChange={(e) =>
-      updateLeadStatus(lead._id, e.target.value as LeadStatus)
-    }
-    className={`
-      px-3 py-2
-      rounded-md
-      text-xs font-semibold
-      min-w-[150px]
-      cursor-pointer
-      border border-gray-300
-      focus:outline-none
-      focus:ring-2
-      focus:ring-blue-500
-      ${getStatusColor(lead.status)}
-    `}
-  >
-    {/* ✅ Always show backend status */}
-    {!ALLOWED_STATUSES.includes(lead.status) && (
-      <option value={lead.status}>{lead.status}</option>
-    )}
-
-    {ALLOWED_STATUSES.map(status => (
-      <option key={status} value={status}>
-        {status}
-      </option>
-    ))}
-  </select>
-</td>
-
-
+                    <td className="whitespace-nowrap py-4 px-6" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={lead.status}
+                        onChange={(e) => updateLeadStatus(lead._id, e.target.value as LeadStatus)}
+                        className={`px-3 py-2 rounded-full text-xs font-medium border-0 min-w-[140px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${getStatusColor(lead.status)}`}
+                        style={{
+                          appearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 8px center',
+                          backgroundSize: '12px',
+                          paddingRight: '30px'
+                        }}
+                      >
+                        {statusOptions.map(status => (
+                          <option key={status} value={status} className="text-gray-900 bg-white">
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="whitespace-nowrap py-4 px-6">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         lead.priority === 'High' ? 'bg-red-100 text-red-800' :
@@ -874,7 +835,7 @@ const MyLeads: React.FC = () => {
           )}
         </div>
       )}
-      {/* ================= Assignment History Modal ================= */}
+            {/* ================= Assignment History Modal ================= */}
 {showAssignmentModal && selectedAssignmentLead && (
   <div
     className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"

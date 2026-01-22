@@ -18,6 +18,7 @@ import type {
   DynamicImportRequest,
   LeadFieldDefinition,
   GoogleSheetImportResponse
+
 } from '../types';
 
 // Create axios instance with base configuration
@@ -236,6 +237,7 @@ export const leadApi = {
       };
     }
   },
+
   getDuplicateLeads: async (
     filters?: LeadFilters,
     page?: number,
@@ -350,13 +352,7 @@ export const leadApi = {
     }
   },
 
-  getMyLeads: async (
-    page?: number,
-    limit?: number,
-    status?: string,
-    folder?: string,
-    search?: string
-  ): Promise<PaginatedResponse<Lead>> => {
+  getMyLeads: async (page?: number, limit?: number, status?: string, folder?: string, search?: string): Promise<PaginatedResponse<Lead>> => {
     try {
       const params = new URLSearchParams();
       if (page) params.append('page', page.toString());
@@ -377,6 +373,7 @@ export const leadApi = {
     }
   },
 
+  // Get stats for all leads assigned to the current user (independent of filters or pagination)
   getMyLeadsStats: async (): Promise<ApiResponse<{ total: number; newLeads: number; inProgress: number; closed: number }>> => {
     try {
       const response = await api.get('/leads/my-leads/stats');
@@ -389,6 +386,7 @@ export const leadApi = {
     }
   },
 
+  // Get distinct folders for filtering
   getDistinctFolders: async (): Promise<ApiResponse<string[]>> => {
     try {
       const response = await api.get('/leads/folders');
@@ -398,25 +396,17 @@ export const leadApi = {
     }
   },
 
-  getFolderCounts: async (): Promise<
-  ApiResponse<{ duplicate: number; uncategorized: number }>
-> => {
-  try {
-    const response = await api.get('/leads/counts/summary');
-    return response.data;
-  } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to fetch folder counts',
-      data: {
-        duplicate: 0,
-        uncategorized: 0
-      }
-    };
-  }
-},
+  // Get folder counts for better performance
+  getFolderCounts: async (): Promise<ApiResponse<Record<string, number>>> => {
+    try {
+      const response = await api.get('/leads/folder-counts');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
 
-
+  // Smart Excel Import APIs
   getLeadFields: async (): Promise<ApiResponse<LeadFieldDefinition[]>> => {
     try {
       const response = await api.get('/leads/import/fields');
@@ -432,7 +422,9 @@ export const leadApi = {
       formData.append('file', file);
 
       const response = await api.post('/leads/import/analyze', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       return handleResponse(response);
     } catch (error) {
@@ -440,11 +432,7 @@ export const leadApi = {
     }
   },
 
-  getSheetPreview: async (
-    file: File,
-    sheetName: string,
-    previewRows: number = 5
-  ): Promise<ApiResponse<SheetPreviewData>> => {
+  getSheetPreview: async (file: File, sheetName: string, previewRows: number = 5): Promise<ApiResponse<SheetPreviewData>> => {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -452,7 +440,9 @@ export const leadApi = {
       formData.append('previewRows', previewRows.toString());
 
       const response = await api.post('/leads/import/preview', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       return handleResponse(response);
     } catch (error) {
@@ -460,22 +450,21 @@ export const leadApi = {
     }
   },
 
-  importWithMapping: async (
-    file: File,
-    importRequest: Omit<DynamicImportRequest, 'fileName'>
-  ): Promise<ExcelUploadResponse> => {
+  importWithMapping: async (file: File, importRequest: Omit<DynamicImportRequest, 'fileName'>): Promise<ExcelUploadResponse> => {
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('sheetName', importRequest.sheetName);
       formData.append('fieldMappings', JSON.stringify(importRequest.fieldMappings));
+
       formData.append('skipEmptyRows', importRequest.skipEmptyRows.toString());
       formData.append('startFromRow', importRequest.startFromRow.toString());
 
       const response = await api.post('/leads/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
       return response.data;
     } catch (error: any) {
       return {
@@ -492,16 +481,16 @@ export const leadApi = {
     }
   },
 
-  /* ONLY NEW METHOD ADDED — NOTHING ELSE CHANGED */
-  importFromGoogleSheet: async (
-    sheetUrl: string
-  ): Promise<GoogleSheetImportResponse> => {
-    const response = await api.post('/leads/import/google-sheet', { sheetUrl });
-    return response.data;
-  },
-  
-  
-};
+    /* ONLY NEW METHOD ADDED — NOTHING ELSE CHANGED */
+    importFromGoogleSheet: async (
+      sheetUrl: string
+    ): Promise<GoogleSheetImportResponse> => {
+      const response = await api.post('/leads/import/google-sheet', { sheetUrl });
+      return response.data;
+    },
+    
+    
+  };
 
 
 // Dashboard API

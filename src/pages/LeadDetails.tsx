@@ -462,7 +462,7 @@ const createReminder = async () => {
                       </div>
                     </div>
                     <button
-  className="btn btn-outline btn-sm"
+  className="text-[16px] text-gray-500 "
   onClick={() => setShowReminderForm(true)}
 >
   ⏰ Set Reminder
@@ -472,7 +472,7 @@ const createReminder = async () => {
                 </div>
               )}
             </div>
-            {showReminderForm && (
+            {/* {showReminderForm && (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg w-full max-w-md p-6">
       <h3 className="text-lg font-semibold mb-4">
@@ -519,7 +519,7 @@ const createReminder = async () => {
       </div>
     </div>
   </div>
-)}
+)} */}
 
           </div>
 
@@ -729,6 +729,62 @@ const createReminder = async () => {
           </div>
         </div>
       </div>
+      {/* ================= REMINDER MODAL ================= */}
+{showReminderForm && (
+  <div
+    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40"
+    onClick={() => setShowReminderForm(false)}
+  >
+    <div
+      className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3 className="text-lg font-semibold mb-4">
+        ⏰ Set Reminder
+      </h3>
+
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="e.g. Call client"
+          className="form-input"
+          value={reminderTitle}
+          onChange={(e) => setReminderTitle(e.target.value)}
+        />
+
+        <textarea
+          placeholder="Optional note"
+          className="form-input"
+          value={reminderNote}
+          onChange={(e) => setReminderNote(e.target.value)}
+        />
+
+        <input
+          type="datetime-local"
+          className="form-input"
+          value={remindAt}
+          onChange={(e) => setRemindAt(e.target.value)}
+        />
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowReminderForm(false)}
+        >
+          Cancel
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={createReminder}
+        >
+          Save Reminder
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

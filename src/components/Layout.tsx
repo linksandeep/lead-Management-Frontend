@@ -6,12 +6,17 @@ import Sidebar from './Sidebar';
 import socket from '../lib/socket';
 import toast from 'react-hot-toast';
 import { reminderApi } from '../lib/reminderApi';
+
 interface Reminder {
-  _id?: string;
+  _id: string;
   title: string;
-  leadId?: string;
+  note?: string;
   reminderAt?: string;
   createdAt?: string;
+  lead?: {
+    _id: string;
+    name: string;
+  };
 }
 
 interface LayoutProps {
@@ -20,9 +25,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(prev => !prev);
@@ -31,65 +36,161 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
   };
-  useEffect(() => {
-    const fetchReminders = async () => {
-      try {
-        const res = await reminderApi.getMyReminders();
+
+  /* ================= FETCH REMINDERS ================= */
+  const fetchReminders = async () => {
+    if (!isAuthenticated) return;
+    
+    setIsRefreshing(true);
+    try {
+      const res = await reminderApi.getMyReminders();
   
-        if (res.success && Array.isArray(res.data)) {
-          const normalized = res.data.map((r: any) => ({
-            ...r,
-            reminderAt: r.remindAt, // 🔥 FIX HERE
-          }));
+      if (res.success && Array.isArray(res.data)) {
+        const normalized = res.data.map((r: any) => ({
+          _id: r._id,
+          title: r.title,
+          note: r.note,
+          reminderAt: r.remindAt || r.reminderAt, // Handle both field names
+          createdAt: r.createdAt,
+          lead: r.lead
+        }));
   
-          setReminders(normalized);
-        }
-      } catch (err) {
-        console.error('Failed to fetch reminders', err);
+        setReminders(normalized);
       }
-    };
-  
+    } catch (err) {
+      console.error('Failed to fetch reminders', err);
+      toast.error('Failed to load reminders');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     if (isAuthenticated) {
       fetchReminders();
     }
   }, [isAuthenticated]);
-  
-  
+
   /* ================= 🔔 SOCKET REMINDER LISTENER ================= */
   useEffect(() => {
     if (!user?._id) return;
-  
-    console.log('🟢 Preparing socket for user:', user._id);
   
     if (!socket.connected) {
       socket.connect();
     }
   
     const handleConnect = () => {
-      console.log('✅ Socket connected:', socket.id);
       socket.emit('join', user._id);
-      console.log('📥 Joined room:', user._id);
+      console.log(' Socket connected & joined user room:', user._id);
     };
   
     const handleReminder = (data: any) => {
-      console.log('🔔 Reminder received:', data);
+      console.log('🔔 Real-time reminder received:', data);
   
-      new Audio('/notification.mp3').play().catch(() => {});
-      setReminders(prev => [data, ...prev]);
-      toast(`⏰ Reminder: ${data.title}`);
+      // Play notification sound
+      try {
+        new Audio('/notification.mp3').play();
+      } catch (error) {
+        console.log('Audio playback failed:', error);
+      }
+      
+      // Add new reminder to the beginning of the list
+      setReminders(prev => {
+        // Prevent duplicates
+        const exists = prev.find(r => r._id === data._id);
+        if (exists) return prev;
+        
+        return [{
+          _id: data._id,
+          title: data.title,
+          note: data.note,
+          reminderAt: data.remindAt || data.reminderAt,
+          createdAt: data.createdAt,
+          lead: data.lead
+        }, ...prev];
+      });
+      
+      // Show toast notification
+      toast.success(`🔔 ${data.title}`, {
+        duration: 5000,
+        icon: '⏰',
+      });
     };
-  
+
+    const handleReminderUpdate = (data: any) => {
+      console.log('🔄 Reminder updated:', data);
+      
+      // Update the specific reminder in the list
+      setReminders(prev => prev.map(r => {
+        if (r._id === data._id) {
+          // If it's a snooze action, update the reminderAt properly
+          const updatedReminderAt = data.remindAt || data.reminderAt || r.reminderAt;
+          
+          return {
+            ...r,
+            title: data.title || r.title,
+            note: data.note !== undefined ? data.note : r.note,
+            reminderAt: updatedReminderAt,
+            lead: data.lead || r.lead
+          };
+        }
+        return r;
+      }));
+    };
+    const handleReminderDelete = (reminderId: string) => {
+      console.log('🗑️ Reminder deleted via socket:', reminderId);
+      
+      // Remove the deleted reminder from the list
+      setReminders(prev => prev.filter(r => r._id !== reminderId));
+    };
+
+    // Socket event listeners
     socket.on('connect', handleConnect);
     socket.on('reminder', handleReminder);
-  
+    socket.on('reminder:update', handleReminderUpdate);
+    socket.on('reminder:delete', handleReminderDelete);
+    socket.on('reminder:done', (data) => {
+      console.log('✅ Reminder marked as done:', data);
+      setReminders(prev => prev.filter(r => r._id !== data._id));
+    });
+    socket.on('reminder:snooze', (data) => {
+      console.log('⏰ Reminder snoozed via socket:', data);
+      
+      // Update the reminder with new snooze time
+      setReminders(prev => prev.map(r => {
+        if (r._id === data._id) {
+          // Make sure we get the new snooze time
+          const newReminderTime = data.snoozeUntil || data.remindAt || data.reminderAt;
+          return {
+            ...r,
+            reminderAt: newReminderTime || r.reminderAt
+          };
+        }
+        return r;
+      }));
+    });
+    // Join user's room
+    socket.emit('join', user._id);
+
     return () => {
+      // Clean up all socket listeners
       socket.off('connect', handleConnect);
       socket.off('reminder', handleReminder);
-      socket.disconnect();
+      socket.off('reminder:update', handleReminderUpdate);
+      socket.off('reminder:delete', handleReminderDelete);
+      socket.off('reminder:done');
+      socket.off('reminder:snooze');
+      
+      // Leave room when component unmounts
+      socket.emit('leave', user._id);
     };
   }, [user?._id]);
-  
-  
+
+  /* ================= HANDLE REFRESH ================= */
+  const handleRefreshReminders = () => {
+    fetchReminders();
+    toast.success('Reminders refreshed');
+  };
 
   /* ================= LOADING ================= */
   if (isLoading) {
@@ -125,11 +226,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* Header (PASS REMINDERS) */}
+      {/* Header with refresh functionality */}
       <Header
         onToggleSidebar={handleToggleSidebar}
         reminders={reminders}
+        refreshReminders={handleRefreshReminders}
       />
+
+      {/* Optional: Show refreshing indicator */}
+      {isRefreshing && (
+        <div className="fixed top-16 right-4 z-30 bg-blue-500 text-white px-3 py-1 rounded-full text-xs animate-pulse">
+          Refreshing reminders...
+        </div>
+      )}
 
       {/* Main content */}
       <main className="main-content">

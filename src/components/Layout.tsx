@@ -101,16 +101,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     } catch (error) {
       console.log('Audio playback failed:', error);
     }
+    console.log("tgis is ren by Play notification sound" , data)
 
     // Set the triggered reminder and show popup
     const newReminder: Reminder = {
-      _id: data._id,
+      _id: data.reminderId,
       title: data.title,
       note: data.note,
-      reminderAt: data.remindAt,
+      reminderAt: data.reminderAt,
       createdAt: data.createdAt,
       lead: data.lead
     };
+     console.log("tgis is ren by 2" , newReminder)
 
     setTriggeredReminder(newReminder);
     setShowReminderPopup(true);
@@ -212,7 +214,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       socket.emit('leave', user._id);
     };
   }, [user?._id]);
-
+console.log(reminders , "ren by sokeit")
   /* ================= HANDLE REFRESH ================= */
   const handleRefreshReminders = () => {
     fetchReminders();
@@ -262,6 +264,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Reminder Notification Popup */}
       {showReminderPopup && triggeredReminder && (
+      
         <ReminderNotification
           reminder={triggeredReminder}
           onClose={() => {

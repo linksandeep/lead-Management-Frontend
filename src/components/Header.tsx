@@ -17,13 +17,18 @@ import toast from 'react-hot-toast';
 
 /* ================= TYPES ================= */
 interface Reminder {
-  _id?: string;
+  _id: string;
   title: string;
   note?: string;
-  leadId?: string;
   reminderAt?: string;
   createdAt?: string;
+  lead?: {
+    _id: string;
+    name: string;
+    email:string
+  };
 }
+
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -173,6 +178,12 @@ export const ReminderItem: React.FC<{
     }
   };
 
+
+
+
+
+  
+
   const getTimeColor = () => {
     if (!reminder.reminderAt) return 'text-gray-500';
     const date = new Date(reminder.reminderAt);
@@ -192,6 +203,21 @@ export const ReminderItem: React.FC<{
             <Clock className="w-4 h-4 text-gray-400" />
             <div className="text-sm font-medium text-gray-900">{reminder.title}</div>
           </div>
+          {/* Lead name & email */}
+{reminder.lead && (
+  <div className="ml-6 mt-1 text-xs text-gray-700 flex flex-col gap-0.5">
+    <span className="font-medium">
+      {reminder.lead.name}
+    </span>
+
+    {reminder.lead.email && (
+      <span className="text-gray-500">
+        {reminder.lead.email}
+      </span>
+    )}
+  </div>
+)}
+
           {reminder.note && (
             <div className="text-xs text-gray-600 mt-1 ml-6 line-clamp-1">
               {reminder.note}
@@ -334,15 +360,24 @@ const ReminderDetailsModal: React.FC<{
               {reminder.title}
             </p>
           </div>
+          {typeof reminder.lead === 'object' && reminder.lead && (
+  <div>
+    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Lead
+    </label>
+    <div className="mt-1 p-2 bg-gray-50 rounded">
+      <p className="text-sm font-medium text-gray-800">
+        {reminder.lead.name}
+      </p>
+      {reminder.lead.email && (
+        <p className="text-xs text-gray-600">
+          {reminder.lead.email}
+        </p>
+      )}
+    </div>
+  </div>
+)}
 
-          {reminder.note && (
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Note</label>
-              <p className="text-gray-700 mt-1 p-2 bg-gray-50 rounded whitespace-pre-wrap">
-                {reminder.note}
-              </p>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

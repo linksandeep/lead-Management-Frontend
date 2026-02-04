@@ -17,6 +17,7 @@ interface Reminder {
   lead?: {
     _id: string;
     name: string;
+    email: string;
   };
 }
 

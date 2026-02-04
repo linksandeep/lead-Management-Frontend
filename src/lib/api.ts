@@ -467,6 +467,20 @@ export const leadApi = {
       return handleError(error);
     }
   },
+  getLeadsBySearch: async (
+    query: string
+  ): Promise<ApiResponse<Lead[]>> => {
+    try {
+      const response = await api.get('/leads/search', {
+        params: { q: query }
+      })
+  
+      return handleResponse(response)
+    } catch (error) {
+      return handleError(error)
+    }
+  },
+  
 
   // Smart Excel Import APIs
   getLeadFields: async (): Promise<ApiResponse<LeadFieldDefinition[]>> => {

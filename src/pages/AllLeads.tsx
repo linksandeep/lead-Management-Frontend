@@ -362,7 +362,8 @@ useEffect(() => {
       'Negotiating': 'bg-pink-100 text-pink-800',
       'Sales Done': 'bg-teal-100 text-teal-800',
       'DNP': 'bg-slate-100 text-slate-800',
-      'Wrong Number': 'bg-gray-100 text-gray-800'
+      'Wrong Number': 'bg-gray-100 text-gray-800',
+      'Call Back': 'bg-cyan-100 text-cyan-800' // Added this line
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };

@@ -15,6 +15,7 @@ import UserManagement from './pages/UserManagement';
 import StatusManagement from './pages/StatusManagement';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+// import WhatsAppChatUI from './pages/whatsapp';
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -208,6 +209,16 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         } 
       />
+       {/* <Route 
+        path="/WhatsAppChatUI" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <WhatsAppChatUI />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      /> */}
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

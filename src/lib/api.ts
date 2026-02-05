@@ -23,7 +23,7 @@ import type {
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.leads.edtechinformative.uk/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -299,7 +299,52 @@ export const leadApi = {
     }
   },
   
+/**
+   * Admin-only: Fetch all chat history across the platform
+   * Maps to: router.get("/getChat", requireAdmin, getAllChats)
+   */
+/**
+   * Admin-only: Fetch all chat history across the platform
+   * Maps to: router.get("/getChat", requireAdmin, getAllChats)
+   */
+getAllChats: async (
+  filters?: { phone?: string; search?: string; platform?: string },
+  page?: number,
+  limit?: number
+): Promise<PaginatedResponse<any>> => {
+  try {
+    const params = new URLSearchParams();
 
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    if (page) params.append('page', page.toString());
+    if (limit) params.append('limit', limit.toString());
+
+    // ✅ FIX: Added the leading slash and ensured it points to /leads/getChat
+    const response = await api.get(`/chat/getChat?${params.toString()}`);
+    return response.data;
+
+  } catch (error) {
+    console.error("Fetch all chats error:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to fetch chat history',
+      data: [],
+      pagination: {
+        page: page || 1,
+        limit: limit || 50,
+        total: 0,
+        totalPages: 0
+      }
+    };
+  }
+},
   getDuplicateLeads: async (
     filters?: LeadFilters,
     page?: number,

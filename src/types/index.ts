@@ -323,4 +323,5 @@ export interface NavItem {
   href: string;
   icon: any;
   adminOnly?: boolean;
+  target?: string; // Add this line with the '?' to make it optional
 }

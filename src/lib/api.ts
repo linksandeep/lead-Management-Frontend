@@ -512,6 +512,14 @@ getAllChats: async (
       return handleError(error);
     }
   },
+  getFolderCountForAdmin: async (): Promise<ApiResponse<Record<string, number>>> => {
+    try {
+      const response = await api.get('/leads/folder-countsALL');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
   getLeadsBySearch: async (
     query: string
   ): Promise<ApiResponse<Lead[]>> => {

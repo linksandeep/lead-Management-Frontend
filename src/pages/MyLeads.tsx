@@ -119,32 +119,21 @@ useEffect(() => {
     try {
       setLoading(true);
       
-      // Get all my leads to check which folders actually have leads
-      const myLeadsResponse = await leadApi.getMyLeads(1, 1000); // Get all leads to check folders
+      const response = await leadApi.getFolderCounts(); 
       
-      if (myLeadsResponse.success && myLeadsResponse.data) {
-        const myLeads = myLeadsResponse.data;
-        
-        // Get unique folders from user's leads only
-        const foldersWithLeads = new Set<string>();
-        const stats: Record<string, number> = {};
-        
-        myLeads.forEach(lead => {
-          const folder = lead.folder || 'Uncategorized';
-          foldersWithLeads.add(folder);
-          stats[folder] = (stats[folder] || 0) + 1;
-        });
-        
-        const availableFolders = Array.from(foldersWithLeads).sort();
+      if (response.success && response.data) {
+        // Use 'any' temporarily to break the conflict, 
+        // then cast to the specific structure we built in the backend
+        const data = response.data as any;
+  
+        const folderData: Record<string, number> = data.folderStats || {};
+        const statusData: Record<string, number> = data.statusStats || {};
+  
+        setFolderStats(folderData);
+        setStatusStats(statusData);
+  
+        const availableFolders = Object.keys(folderData).sort();
         setAvailableFolders(availableFolders);
-        setFolderStats(stats);
-
-        // Calculate status stats
-        const statusCounts: Record<string, number> = {};
-        myLeads.forEach(lead => {
-          statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
-        });
-        setStatusStats(statusCounts);
       }
     } catch (error) {
       console.error('Error fetching folders:', error);

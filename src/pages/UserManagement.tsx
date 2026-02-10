@@ -127,7 +127,7 @@ const [formData, setFormData] = useState({
       password: '',
       role: user.role,
       isActive: user.isActive,
-      canWorkFromHome: false 
+      canWorkFromHome: user.canWorkFromHome || false    
     });
     setEditingUser(user);
     setShowCreateModal(true);

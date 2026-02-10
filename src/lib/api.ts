@@ -83,7 +83,7 @@ const handleError = (error: any): ApiResponse => {
         isDuplicate: true
       };
     }
-    
+
     return errorData;
   }
   return {
@@ -762,17 +762,17 @@ export const attendanceApi = {
     }
   },
 
-  /**
-   * Clock out for the day
-   */
-  clockOut: async (): Promise<ApiResponse<AttendanceRecord>> => {
-    try {
-      const response = await api.post('/attendance/check-out');
-      return handleResponse(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  },
+
+
+clockOut: async (lat: number, lng: number): Promise<ApiResponse<AttendanceRecord>> => {
+  try {
+    //  Coordinates must be passed to match the updated backend controller
+    const response = await api.post('/attendance/check-out', { lat, lng });
+    return handleResponse(response);
+  } catch (error) {
+    return handleError(error);
+  }
+},
 
   /**
    * Get paginated history of current user's attendance

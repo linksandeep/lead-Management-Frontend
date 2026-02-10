@@ -587,7 +587,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [todayHours, setTodayHours] = useState<number>(0);
   const [liveSeconds, setLiveSeconds] = useState<number>(0);
-
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   // check attandence status 
 
@@ -600,6 +600,32 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Inside your Header.tsx component
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const response = await attendanceApi.getStatus();
+        if (response.success && response.data) {
+          setIsClockedIn(response.data.isClockedIn);
+          
+          // 📍 CALCULATE LIVE SECONDS ON LOAD
+          if (response.data.isClockedIn && response.data.checkInTime) {
+            const checkInDate = new Date(response.data.checkInTime);
+            const now = new Date();
+            // Calculate difference in seconds
+            const diffInSeconds = Math.floor((now.getTime() - checkInDate.getTime()) / 1000);
+            setLiveSeconds(diffInSeconds > 0 ? diffInSeconds : 0);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to sync attendance status", error);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+  
+    checkInitialStatus();
+  }, []);
   // Live Timer Effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -633,12 +659,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
 const handleAttendanceAction = async () => {
   setAttendanceLoading(true);
   try {
-    if (!isClockedIn) {
-      // --- 🟢 CLOCK IN FLOW ---
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          
+    // 📍 Always request location first, regardless of In or Out
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        if (!isClockedIn) {
+          // --- 🟢 CLOCK IN FLOW ---
           const res = await attendanceApi.clockIn(latitude, longitude);
           
           if (res.success) {
@@ -648,27 +675,29 @@ const handleAttendanceAction = async () => {
           } else {
             toast.error(res.message || "Clock-in failed");
           }
-          setAttendanceLoading(false);
-        },
-        (error) => {
-          toast.error("Location access is required for attendance.");
-          setAttendanceLoading(false);
+        } else {
+          // --- 🔴 CLOCK OUT FLOW (FIXED) ---
+          // 📍 Now passing latitude and longitude to the API
+          const res = await attendanceApi.clockOut(latitude, longitude);
+          
+          if (res.success) {
+            setIsClockedIn(false);
+            setLiveSeconds(0); // Reset the live ticking counter
+            toast.success("Clocked out successfully!");
+            fetchWorkHours(); // Refresh to show the final total hours from DB
+          } else {
+            toast.error(res.message || "Clock-out failed");
+          }
         }
-      );
-    } else {
-      // --- 🔴 CLOCK OUT FLOW ---
-      const res = await attendanceApi.clockOut();
-      
-      if (res.success) {
-        setIsClockedIn(false);
-        setLiveSeconds(0); // Immediately reset the live ticking counter
-        toast.success("Clocked out successfully!");
-        fetchWorkHours(); // Refresh to show the final total hours from DB
-      } else {
-        toast.error(res.message || "Clock-out failed");
-      }
-      setAttendanceLoading(false);
-    }
+        setAttendanceLoading(false);
+      },
+      (error) => {
+        // Handle location errors (e.g., user denied permission)
+        toast.error("Location access is required for attendance.");
+        setAttendanceLoading(false);
+      },
+      { enableHighAccuracy: true } // Ensures better precision for geofencing
+    );
   } catch (err) {
     toast.error("An unexpected error occurred");
     setAttendanceLoading(false);
@@ -737,7 +766,6 @@ const handleEditReminder = async (data: UpdateReminderDetailsPayload) => {
       {/* RIGHT */}
       <div className="flex items-center gap-4">
         
-        {/* 📍 ATTENDANCE ACTION BUTTON */}
 {/* 📍 ATTENDANCE SECTION */}
 <div className="flex items-center gap-3 mr-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
           <div className="flex flex-col items-end px-2">

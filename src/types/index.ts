@@ -15,6 +15,7 @@ export interface User {
   role: 'admin' | 'user';
   isActive: boolean;
   lastLogin?: string;
+  canWorkFromHome: boolean, 
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +30,7 @@ export interface CreateUserForm {
   email: string;
   password: string;
   role: 'admin' | 'user';
+  canWorkFromHome: boolean
 }
 
 export interface AuthState {

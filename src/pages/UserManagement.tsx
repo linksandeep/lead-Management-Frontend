@@ -38,13 +38,16 @@ const UserManagement: React.FC = () => {
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   // Form state for create/edit
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user' as 'admin' | 'user',
-    isActive: true
-  });
+// Form state for create/edit
+// Form state for create/edit
+const [formData, setFormData] = useState({
+  name: '',
+  email: '',
+  password: '',
+  role: 'user' as 'admin' | 'user',
+  isActive: true,
+  canWorkFromHome: false // Fixed typo and casing
+});
 
   // Redirect if not admin
   if (currentUser?.role !== 'admin') {
@@ -106,7 +109,8 @@ const UserManagement: React.FC = () => {
       email: '',
       password: '',
       role: 'user',
-      isActive: true
+      isActive: true,
+      canWorkFromHome: false 
     });
   };
 
@@ -122,7 +126,8 @@ const UserManagement: React.FC = () => {
       email: user.email,
       password: '',
       role: user.role,
-      isActive: user.isActive
+      isActive: user.isActive,
+      canWorkFromHome: false 
     });
     setEditingUser(user);
     setShowCreateModal(true);
@@ -143,7 +148,8 @@ const UserManagement: React.FC = () => {
         const updateData: any = {
           name: formData.name,
           role: formData.role,
-          isActive: formData.isActive
+          isActive: formData.isActive,
+          canWorkFromHome: formData.canWorkFromHome
         };
         
         const response = await userApi.updateUser(editingUser._id, updateData);
@@ -160,7 +166,8 @@ const UserManagement: React.FC = () => {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          role: formData.role
+          role: formData.role,
+          canWorkFromHome: formData.canWorkFromHome
         });
         
         if (response.success) {
@@ -494,7 +501,22 @@ const UserManagement: React.FC = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 />
               </div>
-
+              <div className="flex items-center gap-2 mb-4">
+  <input
+    type="checkbox"
+    id="wfh-toggle"
+    // 📍 REMOVE THE 'disabled' LINE COMPLETELY
+    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+    checked={formData.canWorkFromHome}
+    onChange={(e) => setFormData(prev => ({ 
+      ...prev, 
+      canWorkFromHome: e.target.checked 
+    }))}
+  />
+  <label htmlFor="wfh-toggle" className="text-sm font-medium text-gray-700 cursor-pointer">
+    Allow Work From Home
+  </label>
+</div>
               {!editingUser && (
                 <div className="form-group">
                   <label className="form-label">Password</label>

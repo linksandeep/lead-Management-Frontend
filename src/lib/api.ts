@@ -45,6 +45,7 @@ api.interceptors.request.use(
 );
 
 // Response interceptor for error handling
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -814,6 +815,20 @@ export const attendanceApi = {
     try {
       // Matches your route: router.get('/getWorkHours', getWorkHours)
       const response = await api.get(`/attendance/getWorkHours?period=${period}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+
+
+  /**
+   * Get current attendance status for the UI lockdown and live timer
+   */
+  getStatus: async (): Promise<ApiResponse<{ isClockedIn: boolean; checkInTime: string | null }>> => {
+    try {
+      const response = await api.get('/attendance/status');
       return handleResponse(response);
     } catch (error) {
       return handleError(error);

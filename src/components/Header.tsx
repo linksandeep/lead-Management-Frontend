@@ -588,6 +588,9 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
   const [todayHours, setTodayHours] = useState<number>(0);
   const [liveSeconds, setLiveSeconds] = useState<number>(0);
 
+
+  // check attandence status 
+
   // Function to format decimal hours (e.g., 1.5) into HH:MM:SS
   const formatTime = (totalHours: number) => {
     const totalSeconds = Math.floor(totalHours * 3600) + liveSeconds;
@@ -625,56 +628,52 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
   }, []);
  
 
-  // --- ATTENDANCE LOGIC ---
-  const handleAttendanceAction = async () => {
-    setAttendanceLoading(true);
-    try {
-      if (!isClockedIn) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            // 🔥 REAL API CALL
-            const res = await attendanceApi.clockIn(latitude, longitude);
-            
-            if (res.success) {
-              setIsClockedIn(true);
-              toast.success("Clocked in successfully!");
-            } else {
-              toast.error(res.message || "Clock-in failed");
-            }
-            setAttendanceLoading(false);
-          },
-          (error) => {
-            toast.error("Location access is required for attendance.");
-            setAttendanceLoading(false);
-          }
-        );
-      } else {
-        // 🔥 REAL API CALL
-        const res = await attendanceApi.clockOut();
-        if (res.success) {
-          setIsClockedIn(false);
-          toast.success("Clocked out successfully!");
-        } else {
-          const res = await attendanceApi.clockOut();
+// --- ATTENDANCE LOGIC ---
+// --- ATTENDANCE LOGIC ---
+const handleAttendanceAction = async () => {
+  setAttendanceLoading(true);
+  try {
+    if (!isClockedIn) {
+      // --- 🟢 CLOCK IN FLOW ---
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          const res = await attendanceApi.clockIn(latitude, longitude);
+          
           if (res.success) {
-            setIsClockedIn(false);
-            setLiveSeconds(0); // Stop the live timer
-            toast.success("Clocked out successfully!");
-            fetchWorkHours(); // Get the final calculated hours from DB
+            setIsClockedIn(true);
+            toast.success("Clocked in successfully!");
+            fetchWorkHours(); // Get initial hours for the session base
           } else {
-            toast.error(res.message || "Clock-out failed");
+            toast.error(res.message || "Clock-in failed");
           }
           setAttendanceLoading(false);
+        },
+        (error) => {
+          toast.error("Location access is required for attendance.");
+          setAttendanceLoading(false);
         }
-        setAttendanceLoading(false);
+      );
+    } else {
+      // --- 🔴 CLOCK OUT FLOW ---
+      const res = await attendanceApi.clockOut();
+      
+      if (res.success) {
+        setIsClockedIn(false);
+        setLiveSeconds(0); // Immediately reset the live ticking counter
+        toast.success("Clocked out successfully!");
+        fetchWorkHours(); // Refresh to show the final total hours from DB
+      } else {
+        toast.error(res.message || "Clock-out failed");
       }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
       setAttendanceLoading(false);
     }
-  };
+  } catch (err) {
+    toast.error("An unexpected error occurred");
+    setAttendanceLoading(false);
+  }
+};
   /* ========== CLOSE DROPDOWNS ON OUTSIDE CLICK ========== */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -968,14 +967,15 @@ const handleEditReminder = async (data: UpdateReminderDetailsPayload) => {
         onRefresh={refreshReminders}
       />
 
-      {/* EDIT REMINDER MODAL */}
-      <EditReminderModal
+    {/* EDIT REMINDER MODAL */}
+    <EditReminderModal
         reminder={editingReminder}
         onClose={() => setEditingReminder(null)}
         onSave={handleEditReminder}
-      />
+      /> 
     </header>
   );
 };
 
 export default Header;
+

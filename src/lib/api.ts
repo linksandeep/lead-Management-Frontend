@@ -20,7 +20,6 @@ import type {
   GoogleSheetImportResponse
 
 } from '../types';
-
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
@@ -74,7 +73,18 @@ const handleError = (error: any): ApiResponse => {
   if (error.response?.data) {
     const errorData = error.response.data;
     
-    // Handle duplicate errors with better messages
+    // 📍 Handle Clock-Out Restriction
+    if (errorData.isClockedOut === true) {
+      // 📍 Dispatch a custom event that the UI will listen for
+      const event = new CustomEvent('showRestrictedAccess', { 
+        detail: { message: errorData.message } 
+      });
+      window.dispatchEvent(event);
+
+      return { ...errorData, isClockedOut: true };
+    }
+
+    // Handle duplicate errors
     if (errorData.message === 'Duplicate lead detected' || 
         errorData.errors?.some((err: string) => err.includes('already exists'))) {
       return {
@@ -86,12 +96,12 @@ const handleError = (error: any): ApiResponse => {
 
     return errorData;
   }
+  
   return {
     success: false,
     message: error.message || 'An unexpected error occurred',
   };
 };
-
 // Authentication API
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> => {

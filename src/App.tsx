@@ -16,6 +16,7 @@ import StatusManagement from './pages/StatusManagement';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import WhatsAppChatUI from './pages/whatsapp';
+import RestrictedPopup from './components/RestrictedAccess';
 // import WhatsAppChatUI from './pages/whatsapp';
 
 // Protected Route component
@@ -256,6 +257,8 @@ const App: React.FC = () => {
       <Router>
         <div className="App">
           <AppRoutes />
+          {/*  ADD THE RESTRICTED POPUP HERE */}
+          <RestrictedPopup />
           <Toaster 
             position="top-right"
             toastOptions={{

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { reminderApi, type UpdateReminderDetailsPayload } from '../lib/reminderApi';
 import toast from 'react-hot-toast';
+import { attendanceApi } from '../lib/api';
 
 /* ================= TYPES ================= */
 interface Reminder {
@@ -582,7 +583,98 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
 
   const profileRef = useRef<HTMLDivElement>(null);
   const reminderRef = useRef<HTMLDivElement>(null);
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [todayHours, setTodayHours] = useState<number>(0);
+  const [liveSeconds, setLiveSeconds] = useState<number>(0);
 
+  // Function to format decimal hours (e.g., 1.5) into HH:MM:SS
+  const formatTime = (totalHours: number) => {
+    const totalSeconds = Math.floor(totalHours * 3600) + liveSeconds;
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Live Timer Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isClockedIn) {
+      interval = setInterval(() => {
+        setLiveSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLiveSeconds(0); // Reset live counter when clocked out
+    }
+
+    return () => clearInterval(interval);
+  }, [isClockedIn]);
+
+  // Fetch initial hours
+  const fetchWorkHours = async () => {
+    const res = await attendanceApi.getWorkHours();
+    if (res.success && res.data) {
+      setTodayHours(res.data.totalHours);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkHours();
+  }, []);
+ 
+
+  // --- ATTENDANCE LOGIC ---
+  const handleAttendanceAction = async () => {
+    setAttendanceLoading(true);
+    try {
+      if (!isClockedIn) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            // 🔥 REAL API CALL
+            const res = await attendanceApi.clockIn(latitude, longitude);
+            
+            if (res.success) {
+              setIsClockedIn(true);
+              toast.success("Clocked in successfully!");
+            } else {
+              toast.error(res.message || "Clock-in failed");
+            }
+            setAttendanceLoading(false);
+          },
+          (error) => {
+            toast.error("Location access is required for attendance.");
+            setAttendanceLoading(false);
+          }
+        );
+      } else {
+        // 🔥 REAL API CALL
+        const res = await attendanceApi.clockOut();
+        if (res.success) {
+          setIsClockedIn(false);
+          toast.success("Clocked out successfully!");
+        } else {
+          const res = await attendanceApi.clockOut();
+          if (res.success) {
+            setIsClockedIn(false);
+            setLiveSeconds(0); // Stop the live timer
+            toast.success("Clocked out successfully!");
+            fetchWorkHours(); // Get the final calculated hours from DB
+          } else {
+            toast.error(res.message || "Clock-out failed");
+          }
+          setAttendanceLoading(false);
+        }
+        setAttendanceLoading(false);
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred");
+      setAttendanceLoading(false);
+    }
+  };
   /* ========== CLOSE DROPDOWNS ON OUTSIDE CLICK ========== */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -645,7 +737,37 @@ const handleEditReminder = async (data: UpdateReminderDetailsPayload) => {
 
       {/* RIGHT */}
       <div className="flex items-center gap-4">
-        {/* 🔔 REMINDER BELL */}
+        
+        {/* 📍 ATTENDANCE ACTION BUTTON */}
+{/* 📍 ATTENDANCE SECTION */}
+<div className="flex items-center gap-3 mr-2 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+          <div className="flex flex-col items-end px-2">
+            <span className="text-[10px] uppercase font-bold text-gray-400 leading-none">
+              {isClockedIn ? 'Live Session' : 'Today Total'}
+            </span>
+            <span className={`text-sm font-mono font-bold ${isClockedIn ? 'text-green-600' : 'text-blue-600'}`}>
+              {isClockedIn ? formatTime(todayHours) : `${todayHours.toFixed(2)} hrs`}
+            </span>
+          </div>
+
+          <button
+            onClick={handleAttendanceAction}
+            disabled={attendanceLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm border ${
+              isClockedIn 
+                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
+                : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+            }`}
+          >
+            {attendanceLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
+            ) : isClockedIn ? (
+              <><LogOut className="w-4 h-4" /> <span className="hidden md:inline">Clock Out</span></>
+            ) : (
+              <><Clock className="w-4 h-4" /> <span className="hidden md:inline">Clock In</span></>
+            )}
+          </button>
+        </div>         {/* 🔔 REMINDER BELL */}
         <div className="relative" ref={reminderRef}>
           <button
             onClick={() => setShowReminderModal(true)}

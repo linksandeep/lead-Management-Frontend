@@ -718,4 +718,108 @@ export const statusApi = {
   },
 };
 
+
+
+
+
+/* ================= TYPES ================= */
+export interface AttendanceRecord {
+  _id: string;
+  date: string;
+  checkIn: string;
+  checkOut?: string;
+  workHours: number;
+  status: 'Present' | 'Late' | 'Half-day';
+  location: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface MonthlyReport {
+  totalDays: number;
+  totalHours: number;
+  averageHours: number;
+}
+/* ================= TYPES ================= */
+export interface WorkHoursStats {
+  totalHours: number;
+  daysCount: number;
+  period: 'today' | 'monthly' | 'yearly';
+}
+/* ================= API OBJECT ================= */
+export const attendanceApi = {
+  /**
+   * Clock in with current GPS coordinates
+   */
+  clockIn: async (lat: number, lng: number): Promise<ApiResponse<AttendanceRecord>> => {
+    try {
+      const response = await api.post('/attendance/check-in', { lat, lng });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Clock out for the day
+   */
+  clockOut: async (): Promise<ApiResponse<AttendanceRecord>> => {
+    try {
+      const response = await api.post('/attendance/check-out');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Get paginated history of current user's attendance
+   */
+  getMyAttendance: async (page: number = 1, limit: number = 10): Promise<PaginatedResponse<AttendanceRecord>> => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      
+      const response = await api.get(`/attendance/my-history?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch attendance history',
+        data: [],
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
+    }
+  },
+
+  /**
+   * Get monthly stats for salary slip calculation
+   * @param month (1-12)
+   * @param year (e.g. 2026)
+   */
+  getMonthlyReport: async (month: number, year: number): Promise<ApiResponse<MonthlyReport>> => {
+    try {
+      const response = await api.get(`/attendance/monthly-report?month=${month}&year=${year}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+
+  getWorkHours: async (period: 'today' | 'monthly' | 'yearly' = 'today'): Promise<ApiResponse<WorkHoursStats>> => {
+    try {
+      // Matches your route: router.get('/getWorkHours', getWorkHours)
+      const response = await api.get(`/attendance/getWorkHours?period=${period}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+};
+
+
 export default api;

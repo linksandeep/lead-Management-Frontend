@@ -532,73 +532,76 @@ const [appliedToDate, setAppliedToDate] = useState('');
           <div className="card-body">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <UserPlus className="w-6 h-6 text-blue-600" />
+              <UserPlus className="w-6 h-6 text-blue-600" />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900">
                     Bulk Assignment & Status Update
-                  </h3>
-                  <p className="text-gray-600">
+          </h3>
+          <p className="text-gray-600">
                     {selectedLeads.length > 0
                       ? `${selectedLeads.length} lead${selectedLeads.length > 1 ? 's' : ''} selected - Assign and/or update status`
                       : 'Select leads below to assign users and update status'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
+            }
+          </p>
+        </div>
+      </div>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <InfiniteScrollUserDropdown
-                  value={selectedUser}
-                  onChange={setSelectedUser}
-                  disabled={assigning || updatingStatus}
-                  includeUnassign={true}
-                  placeholder="No change to assignment"
-                />
-              </div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+  <div
+    onClick={(e) => e.stopPropagation()}
+    onMouseDown={(e) => e.stopPropagation()}
+  >
+    <InfiniteScrollUserDropdown
+      value={selectedUser}
+      onChange={setSelectedUser}
+      disabled={assigning || updatingStatus}
+      includeUnassign={true}
+      placeholder="No change to assignment"
+    />
+  </div>
 
-              <div>
-                <label className="form-label">Update Status (Optional)</label>
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value)}
-                  className="form-input"
-                  disabled={assigning || updatingStatus}
-                >
-                  <option value="">No change to status</option>
-                  {statusOptions.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
+  <div>
+    <label className="form-label">Update Status (Optional)</label>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+            className="form-input"
+            disabled={assigning || updatingStatus}
+          >
+            <option value="">No change to status</option>
+            {statusOptions.map(status => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        </div>
 
-              <div>
-                <button
+        {/* Action Button */}
+        <div>
+        <button
                   onClick={handleAssignLeads}
                   disabled={selectedLeads.length === 0 || (!selectedUser && !bulkStatus) || assigning || updatingStatus}
                   className="btn btn-primary w-full"
-                >
-                  {(assigning || updatingStatus) ? (
-                    <>
-                      <div className="loading-spinner mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Apply Changes{selectedLeads.length > 0 ? ` (${selectedLeads.length})` : ''}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+          >
+            {(assigning || updatingStatus) ? (
+               <>
+               <div className="loading-spinner mr-2"></div>
+               Processing...
+             </>
+            ) : (
+              <>
+              <CheckCircle className="w-4 h-4" />
+              Apply Changes{selectedLeads.length > 0 ? ` (${selectedLeads.length})` : ''}
+            </>
+          )}
+        </button>
+      </div>
+    </div>
 
-            {/* Action Preview - Fixed for New Dropdown */}
-            {selectedLeads.length > 0 && (selectedUser || bulkStatus) && (
+          
+
+      {/* Improved Action Preview: Shows a summary of what will happen */}
+      {selectedLeads.length > 0 && (selectedUser || bulkStatus) && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-800 font-medium">
                   Changes to apply:
@@ -613,11 +616,11 @@ const [appliedToDate, setAppliedToDate] = useState('');
                     <li>• Update status to "{bulkStatus}"</li>
                   )}
                 </ul>
-              </div>
-            )}
-          </div>
         </div>
       )}
+    </div>
+  </div>
+)}
 
       {/* Filters */}
       {currentView === 'leads' && (
@@ -700,22 +703,26 @@ fetchLeads();
 
               <div>
                 {/* Standard Select for Filtering (needs "All Users" and "Unassigned" options easily) */}
-                <select
-                  value={userFilter}
-                  onChange={(e) => {
-                    setUserFilter(e.target.value);
-                    handleFilterChange();
-                  }}
-                  className="form-input w-full"
-                >
-                  <option value="all">All Users</option>
-                  <option value="unassigned">Unassigned</option>
-                  {users.map(user => (
-                    <option key={user._id} value={user._id}>
-                      {user.name} ({user.role})
-                    </option>
-                  ))}
-                </select>
+                <div onClick={(e) => e.stopPropagation()}>
+  <InfiniteScrollUserDropdown
+    value={userFilter === 'all' ? '' : userFilter}
+    onChange={(val) => {
+      // Map dropdown values to your filter logic
+      if (!val) {
+        setUserFilter('all'); // No change = All Users
+      } else if (val === 'unassign') {
+        setUserFilter('unassigned');
+      } else {
+        setUserFilter(val);
+      }
+
+      handleFilterChange();
+    }}
+    includeUnassign={true}
+    placeholder="All Users"
+  />
+</div>
+
               </div>
 
               <div>

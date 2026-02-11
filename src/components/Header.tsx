@@ -691,7 +691,7 @@ const handleAttendanceAction = async () => {
         }
         setAttendanceLoading(false);
       },
-      (error) => {
+      (_error) => {
         // Handle location errors (e.g., user denied permission)
         toast.error("Location access is required for attendance.");
         setAttendanceLoading(false);

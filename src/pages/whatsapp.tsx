@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Search, MoreVertical, Paperclip, Smile, Mic, Send, CheckCheck, 
+  Search, MoreVertical, Paperclip, Smile, Send, CheckCheck, 
   User, Info, X, Loader2, AlertCircle
 } from 'lucide-react';
 import { leadApi } from '../lib/api';

@@ -700,30 +700,31 @@ fetchLeads();
                   ))}
                 </select>
               </div>
-
-              <div>
-                {/* Standard Select for Filtering (needs "All Users" and "Unassigned" options easily) */}
-                <div onClick={(e) => e.stopPropagation()}>
+              <div 
+  className="md:col-span-1" 
+  onClick={(e) => e.stopPropagation()} 
+  onMouseDown={(e) => e.stopPropagation()}
+>
   <InfiniteScrollUserDropdown
-    value={userFilter === 'all' ? '' : userFilter}
+    // This logic ensures the UI shows "Unassign" when state is 'unassigned'
+    value={userFilter === 'all' ? '' : (userFilter === 'unassigned' ? 'unassign' : userFilter)}
     onChange={(val) => {
-      // Map dropdown values to your filter logic
-      if (!val) {
-        setUserFilter('all'); // No change = All Users
-      } else if (val === 'unassign') {
+      // Log to verify if the component returns 'unassign' or 'unassigned'
+      console.log("Selected Value:", val); 
+
+      if (!val || val === '' || val === 'all') {
+        setUserFilter('all');
+      } else if (val === 'unassign' || val === 'unassigned') {
         setUserFilter('unassigned');
       } else {
         setUserFilter(val);
       }
-
       handleFilterChange();
     }}
     includeUnassign={true}
     placeholder="All Users"
   />
 </div>
-
-              </div>
 
               <div>
               <button

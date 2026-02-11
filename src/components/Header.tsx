@@ -587,11 +587,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [todayHours, setTodayHours] = useState<number>(0);
   const [liveSeconds, setLiveSeconds] = useState<number>(0);
-  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [_checkingStatus, setCheckingStatus] = useState(true);
 
   // check attandence status 
-console.log(checkingStatus)
-  // Function to format decimal hours (e.g., 1.5) into HH:MM:SS
+// console.log(checkingStatus)
+  // Function to format decimal hours (e.g., 1.5) i .nto HH:MM:SS
   const formatTime = (totalHours: number) => {
     const totalSeconds = Math.floor(totalHours * 3600) + liveSeconds;
     const hrs = Math.floor(totalSeconds / 3600);

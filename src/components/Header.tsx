@@ -628,7 +628,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, reminders, refreshRemi
   }, []);
   // Live Timer Effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
 
     if (isClockedIn) {
       interval = setInterval(() => {

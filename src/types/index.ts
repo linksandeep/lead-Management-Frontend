@@ -47,6 +47,7 @@ export interface Lead {
   name: string;
   email: string;
   phone: string;
+  whatsapp?: string;
   position: string;
   folder: string;
   source: LeadSource;

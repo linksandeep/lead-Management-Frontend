@@ -946,6 +946,15 @@ useEffect(() => {
                           {lead.phone}
                         </a>
                       </div>
+                      <div className="flex items-center text-sm">
+                        <Phone className="w-3 h-3 text-gray-400 mr-1" />
+                        <a 
+                          href={`tel:${lead.whatsapp}`}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          {lead.whatsapp}
+                        </a>
+                      </div>
                     </div>
                   </td>
                   <td className="whitespace-nowrap">

@@ -46,6 +46,7 @@ const LeadDetails: React.FC = () => {
     name: '',
     email: '',
     phone: '',
+    whatsapp: '',
     position: '',
     folder: '',
     status: 'New' as LeadStatus,
@@ -81,6 +82,7 @@ const LeadDetails: React.FC = () => {
           name: response.data.name,
           email: response.data.email,
           phone: response.data.phone,
+          whatsapp: response.data.whatsapp || '',
           position: response.data.position,
           folder: response.data.folder,
           status: response.data.status,
@@ -375,6 +377,14 @@ const createReminder = async () => {
                       className="form-input"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      required
+                    />
+                    <label className="form-label">Whatsapp</label>
+                    <input
+                      type="tel"
+                      className="form-input"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData(prev => ({ ...prev, whatsapp: e.target.value }))}
                       required
                     />
                   </div>

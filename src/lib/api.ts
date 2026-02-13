@@ -844,7 +844,63 @@ clockOut: async (lat: number, lng: number): Promise<ApiResponse<AttendanceRecord
       return handleError(error);
     }
   },
+
+
+// Inside attendanceApi in your api.ts file
+getAdminReport: async (from: string, to: string, limit: number = 100): Promise<any> => {
+  try {
+    const params = new URLSearchParams({ from, to, limit: limit.toString() });
+    const response = await api.get(`/attendance/admin/report?${params.toString()}`);
+    // Return the full response object directly so we can access .report and .userGrandTotals
+    return response.data; 
+  } catch (error) {
+    return handleError(error);
+  }
+},
+
+  /**
+   * User: Get personal attendance report
+   * URL: /attendance/report
+   */
+  getUserReport: async (): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get('/attendance/report');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+  /**
+   * Admin/User: Get specific analytics for a user by ID
+   * URL: /attendance/analytics/:userId?month=1&year=2025
+   */
+  getUserAnalytics: async (userId: string, month: number, year: number): Promise<ApiResponse<any>> => {
+    try {
+      const params = new URLSearchParams({ 
+        month: month.toString(), 
+        year: year.toString() 
+      });
+      const response = await api.get(`/attendance/analytics/${userId}?${params.toString()}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  },
 };
 
+
+export const performance ={
+  // Inside src/lib/api.ts
+getUserPerformance: async (userId: string, from: string, to: string): Promise<any> => {
+  try {
+    const params = new URLSearchParams({ from, to });
+    const response = await api.get(`/performance/${userId}?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    return handleError(error);
+  }
+},
+}
 
 export default api;

@@ -12,6 +12,7 @@ import {
   UserPlus,
   Phone,
   Mail,
+  MessageCircle,
   Calendar,
   RefreshCw,
   FolderOpen,
@@ -947,7 +948,7 @@ useEffect(() => {
                         </a>
                       </div>
                       <div className="flex items-center text-sm">
-                        <Phone className="w-3 h-3 text-gray-400 mr-1" />
+                        <MessageCircle className="w-3 h-3 text-gray-400 mr-1" />
                         <a 
                           href={`tel:${lead.whatsapp}`}
                           className="text-blue-600 hover:text-blue-800"

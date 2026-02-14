@@ -17,7 +17,7 @@ import type {
   SheetPreviewData,
   DynamicImportRequest,
   LeadFieldDefinition,
-  GoogleSheetImportResponse
+  GoogleSheetImportResponse,
 
 } from '../types';
 // Create axios instance with base configuration
@@ -847,11 +847,17 @@ clockOut: async (lat: number, lng: number): Promise<ApiResponse<AttendanceRecord
 
 
 // Inside attendanceApi in your api.ts file
-getAdminReport: async (from: string, to: string, limit: number = 100): Promise<any> => {
+// src/lib/api.ts
+getAdminReport: async (from: string, to: string, page: number = 1, limit: number = 15): Promise<any> => {
   try {
-    const params = new URLSearchParams({ from, to, limit: limit.toString() });
+    // We pass page and limit to the backend to handle the large dataset
+    const params = new URLSearchParams({ 
+      from, 
+      to, 
+      page: page.toString(), 
+      limit: limit.toString() 
+    });
     const response = await api.get(`/attendance/admin/report?${params.toString()}`);
-    // Return the full response object directly so we can access .report and .userGrandTotals
     return response.data; 
   } catch (error) {
     return handleError(error);
@@ -875,32 +881,60 @@ getAdminReport: async (from: string, to: string, limit: number = 100): Promise<a
    * Admin/User: Get specific analytics for a user by ID
    * URL: /attendance/analytics/:userId?month=1&year=2025
    */
-  getUserAnalytics: async (userId: string, month: number, year: number): Promise<ApiResponse<any>> => {
+  getUserAnalytics: async (userId: string, options: { month: number; year: number }): Promise<ApiResponse<any>> => {
     try {
       const params = new URLSearchParams({ 
-        month: month.toString(), 
-        year: year.toString() 
+        month: options.month.toString(), 
+        year: options.year.toString() 
       });
       const response = await api.get(`/attendance/analytics/${userId}?${params.toString()}`);
-      return handleResponse(response);
+      return response.data;
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+
+
+  getReport: async (
+    fromDate: string,
+    toDate: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<any>> => {
+    try {
+      const params = new URLSearchParams({
+        fromDate,
+        toDate,
+        page: page.toString(),
+        limit: limit.toString()
+      });
+  
+      const response = await api.get(`/attendance/report?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+  
+};
+
+
+export const performance ={
+  // Inside src/lib/api.ts
+  getUserPerformance: async (userId: string, from?: string, to?: string, range?: string): Promise<ApiResponse<any>> => {
+    try {
+      const params = new URLSearchParams();
+      if (range) params.append('range', range);
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+
+      const response = await api.get(`/performance/${userId}?${params.toString()}`);
+      return response.data;
     } catch (error) {
       return handleError(error);
     }
   },
 };
 
-
-export const performance ={
-  // Inside src/lib/api.ts
-getUserPerformance: async (userId: string, from: string, to: string): Promise<any> => {
-  try {
-    const params = new URLSearchParams({ from, to });
-    const response = await api.get(`/performance/${userId}?${params.toString()}`);
-    return response.data;
-  } catch (error) {
-    return handleError(error);
-  }
-},
-}
 
 export default api;

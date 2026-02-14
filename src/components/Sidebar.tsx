@@ -11,6 +11,7 @@ import {
   UserCheck,
   FileSpreadsheet,
   Target,
+  CalendarCheck,
   MessageSquare
 } from 'lucide-react';
 import type { NavItem } from '../types';
@@ -34,13 +35,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: 'User Management', href: '/users', icon: UserCheck, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp, adminOnly: true },
     { name: 'Settings', href: '/settings', icon: Settings, adminOnly: true },
-    { 
-      name: "WhatsApp", 
-      href: "/WhatsAppChat", 
-      icon: MessageSquare,
-      adminOnly: true,
-      target: "_blank" 
-    }
+ // Ensure this matches the Route path exactly
+ { 
+  name: "WhatsApp", 
+  href: "/WhatsAppChat", 
+  icon: MessageSquare,
+  adminOnly: true,
+  target: "_blank" 
+},
+{ 
+  name: "Attendance Management", 
+  href: "/attendance-management", // Must be lowercase to match Route
+  icon: CalendarCheck, 
+  adminOnly: true
+},
+
   ];
 
   // Filter navigation based on user role

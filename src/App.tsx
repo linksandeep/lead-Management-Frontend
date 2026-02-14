@@ -17,6 +17,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import WhatsAppChatUI from './pages/whatsapp';
 import RestrictedPopup from './components/RestrictedAccess';
+import AttendanceReport from './pages/AttendanceManagement';
 // import WhatsAppChatUI from './pages/whatsapp';
 
 // Protected Route component
@@ -221,6 +222,16 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         } 
       />
+  <Route 
+  path="/attendance-management"
+  element={
+    <ProtectedRoute> {/* Ensure this prop is passed if your component needs it */}
+      <Layout>
+        <AttendanceReport />
+      </Layout>
+    </ProtectedRoute>
+  } 
+/>
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

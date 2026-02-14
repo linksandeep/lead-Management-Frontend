@@ -140,6 +140,13 @@ export interface ApiResponse<T = any> {
   message: string;
   data?: T;
   errors?: string[];
+  pagination?: {
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 }
 
 export interface PaginatedResponse<T = any> {

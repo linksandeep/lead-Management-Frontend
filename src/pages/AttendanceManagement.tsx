@@ -2,16 +2,15 @@ import React, { useEffect, useState } from "react";
 import { attendanceApi } from "../lib/api";
 import { 
   Users, Calendar, ChevronLeft, ChevronRight, Eye, 
-  Clock, UserCheck, AlertCircle, LogIn, LogOut, 
-  RefreshCw, Filter, Download, XCircle, TrendingUp,
-  CalendarDays, Coffee, Moon
+  Clock, UserCheck, AlertCircle, LogIn, LogOut, Filter, Download, XCircle, TrendingUp,
+  CalendarDays, Moon
 } from 'lucide-react';
 
 const AttendanceManagement: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [_loading, setLoading] = useState(false);
+  const [_reportData, setReportData] = useState<any>(null);
   const [records, setRecords] = useState<any[]>([]);
   const [userGrandTotals, setUserGrandTotals] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
@@ -21,7 +20,7 @@ const AttendanceManagement: React.FC = () => {
     from: '2026-02-11', // Default from date
     to: today,
   });
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [_selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   // Fetch data with admin report API

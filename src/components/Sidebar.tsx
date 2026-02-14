@@ -11,7 +11,6 @@ import {
   UserCheck,
   FileSpreadsheet,
   Target,
-  ClipboardCheck,
   CalendarCheck,
   MessageSquare
 } from 'lucide-react';

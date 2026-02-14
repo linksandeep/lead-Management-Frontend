@@ -11,13 +11,14 @@ const AttendanceManagement: React.FC = () => {
 
   const [_loading, setLoading] = useState(false);
   const [_reportData, setReportData] = useState<any>(null);
+  const [summary, setSummary] = useState<any>(null); // Add summary state
   const [records, setRecords] = useState<any[]>([]);
   const [userGrandTotals, setUserGrandTotals] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({
-    from: '2026-02-11', // Default from date
+    from: '2026-02-11',
     to: today,
   });
   const [_selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -27,13 +28,15 @@ const AttendanceManagement: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Using getAdminReport with date range, page, and limit
       const res = await attendanceApi.getAdminReport(dateRange.from, dateRange.to, page, limit);
       
-      console.log("API Response:", res); // Debug log
+      console.log("API Response:", res);
       
       if (res.success && res.report) {
         setReportData(res);
+        
+        // Use the summary directly from API response
+        setSummary(res.summary);
         
         // Set user grand totals for top performers
         setUserGrandTotals(res.userGrandTotals || []);
@@ -68,6 +71,7 @@ const AttendanceManagement: React.FC = () => {
         
       } else {
         setReportData(null);
+        setSummary(null);
         setRecords([]);
         setUserGrandTotals([]);
         setPagination(null);
@@ -75,6 +79,7 @@ const AttendanceManagement: React.FC = () => {
     } catch (error) {
       console.error("Error fetching attendance data:", error);
       setReportData(null);
+      setSummary(null);
       setRecords([]);
       setUserGrandTotals([]);
       setPagination(null);
@@ -84,10 +89,10 @@ const AttendanceManagement: React.FC = () => {
   
   useEffect(() => {
     fetchData();
-  }, [page, limit]); // Refetch when page or limit changes
+  }, [page, limit]);
 
   const handleApplyFilters = () => {
-    setPage(1); // Reset to first page when applying new filters
+    setPage(1);
     fetchData();
   };
 
@@ -124,21 +129,7 @@ const AttendanceManagement: React.FC = () => {
     }
   };
 
-  const formatFullDateTime = (dateString: string | null) => {
-    if (!dateString) return null;
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString([], { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    } catch {
-      return dateString;
-    }
-  };
+
 
   const formatDisplayDate = (dateString: string) => {
     try {
@@ -165,21 +156,24 @@ const AttendanceManagement: React.FC = () => {
   };
 
   const getStatusBadge = (record: any) => {
-    const lastCheckOut = record.lastCheckOut || record.firstSession?.checkOut;
-    
-    if (lastCheckOut === "Active") {
+    if (record.status === "Active" || record.lastCheckOut === "Active") {
       return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Active
       </span>;
     }
-    if (lastCheckOut?.includes("Auto") || record.firstSession?.isAutoClosed) {
+    if (record.status === "Auto-logout" || record.lastCheckOut?.includes("Auto")) {
       return <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
-        <Clock size={12} /> Auto Logout
+        <Moon size={12} /> Auto Logout
       </span>;
     }
-    if (record.totalWorkHours > 0) {
+    if (record.status === "Present") {
       return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
         <UserCheck size={12} /> Present
+      </span>;
+    }
+    if (record.status === "Late") {
+      return <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
+        <AlertCircle size={12} /> Late
       </span>;
     }
     return <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
@@ -188,7 +182,7 @@ const AttendanceManagement: React.FC = () => {
   };
 
   const getCheckOutDisplay = (record: any) => {
-    const lastCheckOut = record.lastCheckOut || record.firstSession?.checkOut;
+    const lastCheckOut = record.lastCheckOut;
     
     if (!lastCheckOut) return null;
     if (lastCheckOut === "Active") {
@@ -199,29 +193,9 @@ const AttendanceManagement: React.FC = () => {
         <Moon size={12} /> Auto-closed
       </span>;
     }
-    return formatFullDateTime(lastCheckOut);
+    return formatTime(lastCheckOut);
   };
 
-  // Calculate summary stats from records
-  const calculateSummary = () => {
-    if (!records.length) return null;
-    
-    const uniqueEmployees = new Set(records.map(r => r.userEmail)).size;
-    const presentToday = records.filter(r => r.totalWorkHours > 0).length;
-    const activeNow = records.filter(r => r.lastCheckOut === "Active" || r.firstSession?.checkOut === "Active").length;
-    const lateToday = records.filter(r => r.firstSession?.isLate || r.lastCheckOut?.includes("Auto")).length;
-    const absentToday = uniqueEmployees - presentToday;
-    
-    return {
-      totalEmployees: uniqueEmployees,
-      presentToday,
-      presentRightNow: activeNow,
-      lateToday,
-      absentToday
-    };
-  };
-
-  const summary = calculateSummary();
   const uniqueDates = [...new Set(records.map(r => r.displayDate))];
 
   return (
@@ -312,40 +286,40 @@ const AttendanceManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Top Summary Cards */}
+        {/* Top Summary Cards - Using API summary */}
         {summary && (
           <>
             <div className="grid grid-cols-5 gap-5 mb-8">
               <StatCard 
                 title="Total Employees" 
-                value={summary.totalEmployees} 
+                value={summary.totalEmployees || 0} 
                 icon={Users}
                 color="blue"
               />
               <StatCard 
                 title="Present Today" 
-                value={summary.presentToday} 
+                value={summary.presentToday || 0} 
                 icon={UserCheck}
                 color="green"
-                subtitle={`${Math.round((summary.presentToday / summary.totalEmployees) * 100)}% of total`}
+                subtitle={`${Math.round(((summary.presentToday || 0) / (summary.totalEmployees || 1)) * 100)}% of total`}
               />
               <StatCard 
                 title="Present Now" 
-                value={summary.presentRightNow} 
+                value={summary.presentRightNow || 0} 
                 icon={Clock}
                 color="purple"
                 subtitle="Currently active"
               />
               <StatCard 
                 title="Late Arrivals" 
-                value={summary.lateToday} 
+                value={summary.lateToday || 0} 
                 icon={AlertCircle}
                 color="orange"
                 subtitle="Auto-logout or late"
               />
               <StatCard 
                 title="Absent" 
-                value={summary.absentToday} 
+                value={summary.absentToday || 0} 
                 icon={XCircle}
                 color="red"
                 subtitle="No show today"
@@ -359,7 +333,7 @@ const AttendanceManagement: React.FC = () => {
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Attendance Rate</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {Math.round((summary.presentToday / summary.totalEmployees) * 100)}%
+                      {Math.round(((summary.presentToday || 0) / (summary.totalEmployees || 1)) * 100)}%
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
@@ -369,7 +343,7 @@ const AttendanceManagement: React.FC = () => {
                 <div className="mt-3 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
-                    style={{ width: `${Math.round((summary.presentToday / summary.totalEmployees) * 100)}%` }}
+                    style={{ width: `${Math.round(((summary.presentToday || 0) / (summary.totalEmployees || 1)) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -380,7 +354,7 @@ const AttendanceManagement: React.FC = () => {
                     <p className="text-xs text-gray-500 mb-1">On-Time Rate</p>
                     <p className="text-2xl font-bold text-gray-900">
                       {summary.presentToday > 0 
-                        ? Math.round(((summary.presentToday - summary.lateToday) / summary.presentToday) * 100) 
+                        ? Math.round(((summary.presentToday - (summary.lateToday || 0)) / summary.presentToday) * 100) 
                         : 0}%
                     </p>
                   </div>
@@ -389,7 +363,7 @@ const AttendanceManagement: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                  {summary.presentToday - summary.lateToday} out of {summary.presentToday} on time
+                  {(summary.presentToday - (summary.lateToday || 0))} out of {summary.presentToday} on time
                 </p>
               </div>
 
@@ -398,7 +372,7 @@ const AttendanceManagement: React.FC = () => {
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Absentee Rate</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {Math.round((summary.absentToday / summary.totalEmployees) * 100)}%
+                      {Math.round(((summary.absentToday || 0) / (summary.totalEmployees || 1)) * 100)}%
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
@@ -406,7 +380,7 @@ const AttendanceManagement: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
-                  {summary.absentToday} employees absent
+                  {summary.absentToday || 0} employees absent
                 </p>
               </div>
             </div>
@@ -509,7 +483,15 @@ const AttendanceManagement: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {displayRecords.map((record, idx) => (
+                      {_loading ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-8">
+                            <div className="flex justify-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : displayRecords.map((record, idx) => (
                         <tr key={`${record.userEmail}-${date}-${idx}`} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -527,30 +509,13 @@ const AttendanceManagement: React.FC = () => {
                           </td>
                           <td className="px-6 py-4">
                             {record.firstSession?.checkIn ? (
-                              <div className="flex flex-col">
-                                <span className="text-sm text-gray-900">{formatTime(record.firstSession.checkIn)}</span>
-                                <span className="text-xs text-gray-400">{new Date(record.firstSession.checkIn).toLocaleDateString()}</span>
-                              </div>
+                              <span className="text-sm text-gray-900">{formatTime(record.firstSession.checkIn)}</span>
                             ) : (
                               <span className="text-sm text-gray-400">—</span>
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            {getCheckOutDisplay(record) ? (
-                              <div className="flex flex-col">
-                                <span className="text-sm text-gray-900">
-                                  {typeof getCheckOutDisplay(record) === 'string' 
-                                    ? getCheckOutDisplay(record)
-                                    : formatTime(record.lastCheckOut || record.firstSession?.checkOut)
-                                  }
-                                </span>
-                                {record.lastCheckOut && !record.lastCheckOut.includes('Auto') && record.lastCheckOut !== 'Active' && (
-                                  <span className="text-xs text-gray-400">{new Date(record.lastCheckOut).toLocaleDateString()}</span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-gray-400">—</span>
-                            )}
+                            {getCheckOutDisplay(record) || <span className="text-sm text-gray-400">—</span>}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
@@ -565,7 +530,7 @@ const AttendanceManagement: React.FC = () => {
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() => setSelectedUserId(record.userEmail)}
+                              onClick={() => setSelectedUserId(record.userId)}
                               className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors"
                               title="View Details"
                             >
@@ -600,34 +565,9 @@ const AttendanceManagement: React.FC = () => {
                 <ChevronLeft size={16} />
               </button>
 
-              <div className="flex items-center gap-1">
-                {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
-                  let pageNum: number;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setPage(pageNum)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                        page === pageNum
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-700'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
+              <span className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium">
+                Page {page}
+              </span>
 
               <button
                 disabled={page === pagination.totalPages}
@@ -650,20 +590,12 @@ const AttendanceManagement: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Drawer or Modal for User Performance (Optional) */}
-      {/* {selectedUserId && (
-        <UserPerformanceDrawer
-          userId={selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-        />
-      )} */}
     </div>
   );
 };
 
 // Enhanced Stat Card Component
-const StatCard = ({ title, value, icon: Icon, color, subtitle, change }: any) => {
+const StatCard = ({ title, value, icon: Icon, color, subtitle }: any) => {
   const colors: Record<string, { bg: string; text: string; iconBg: string }> = {
     blue: { bg: 'bg-blue-50', text: 'text-blue-600', iconBg: 'bg-blue-100' },
     green: { bg: 'bg-green-50', text: 'text-green-600', iconBg: 'bg-green-100' },
@@ -686,11 +618,6 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle, change }: any) =>
           <Icon className={selectedColor.text} size={20} />
         </div>
       </div>
-      {change && (
-        <div className="mt-3 flex items-center gap-1">
-          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">↑ {change}</span>
-        </div>
-      )}
     </div>
   );
 };

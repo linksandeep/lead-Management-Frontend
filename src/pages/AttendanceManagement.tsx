@@ -5,6 +5,7 @@ import {
   Clock, UserCheck, AlertCircle, LogIn, LogOut, Filter, Download, XCircle, TrendingUp,
   CalendarDays, Moon
 } from 'lucide-react';
+import EmployeeReportDrawer from "./EmployeeReportDrawer";
 
 const AttendanceManagement: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
@@ -23,7 +24,8 @@ const AttendanceManagement: React.FC = () => {
   });
   const [_selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-
+// Inside AttendanceManagement component
+const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   // Fetch data with admin report API
   const fetchData = async () => {
     setLoading(true);
@@ -465,6 +467,7 @@ const AttendanceManagement: React.FC = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                        
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-1">
@@ -493,17 +496,20 @@ const AttendanceManagement: React.FC = () => {
                         </tr>
                       ) : displayRecords.map((record, idx) => (
                         <tr key={`${record.userEmail}-${date}-${idx}`} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-semibold shadow-sm">
-                                {record.userName?.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{record.userName}</p>
-                                <p className="text-xs text-gray-500">{record.userEmail}</p>
-                              </div>
-                            </div>
-                          </td>
+                        <td className="px-6 py-4">
+  <div 
+    className="flex items-center gap-3 cursor-pointer group"
+    onClick={() => setSelectedEmployeeId(record.userId)}
+  >
+    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-semibold shadow-sm">
+      {record.userName?.charAt(0).toUpperCase()}
+    </div>
+    <div>
+      <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{record.userName}</p>
+      <p className="text-xs text-gray-500">{record.userEmail}</p>
+    </div>
+  </div>
+</td>
                           <td className="px-6 py-4">
                             {getStatusBadge(record)}
                           </td>
@@ -590,6 +596,14 @@ const AttendanceManagement: React.FC = () => {
           </div>
         )}
       </div>
+      {/* ADD THIS AT THE BOTTOM OF YOUR MAIN DIV */}
+      {selectedEmployeeId && (
+        <EmployeeReportDrawer 
+          userId={selectedEmployeeId} 
+          onClose={() => setSelectedEmployeeId(null)} 
+          dateRange={dateRange}
+        />
+      )}
     </div>
   );
 };

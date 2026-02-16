@@ -921,14 +921,28 @@ getAdminReport: async (from: string, to: string, page: number = 1, limit: number
 
 export const performance ={
   // Inside src/lib/api.ts
-  getUserPerformance: async (userId: string, from?: string, to?: string, range?: string): Promise<ApiResponse<any>> => {
+  getUserPerformance: async (
+    userId: string, 
+    filters: { range?: string; from?: string; to?: string }
+  ): Promise<any> => {
     try {
       const params = new URLSearchParams();
-      if (range) params.append('range', range);
-      if (from) params.append('from', from);
-      if (to) params.append('to', to);
+      // Only append if the values actually exist
+      if (filters.range) params.append('range', filters.range);
+      if (filters.from) params.append('from', filters.from);
+      if (filters.to) params.append('to', filters.to);
 
+      // Matches: http://localhost:8000/api/performance/:userId?range=...
       const response = await api.get(`/performance/${userId}?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return handleError(error);
+    }
+  },
+  getUserAnalytics: async (userId: string, month: number, year: number): Promise<ApiResponse<any>> => {
+    try {
+      // Matches: http://localhost:8000/api/attendance/analytics/${userId}?month=${month}&year=${year}
+      const response = await api.get(`/attendance/analytics/${userId}?month=${month}&year=${year}`);
       return response.data;
     } catch (error) {
       return handleError(error);
